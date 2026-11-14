@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="444" viewBox="0 0 1000 444" role="img" aria-labelledby="title desc">
+  <title id="title">MeetMind protected and visible modes</title>
+  <desc id="desc">Explanatory diagram. In protected mode the overlay remains on your desktop while a compatible capture can omit it. In visible mode the overlay can appear in both. Actual behavior depends on the operating system and capture method.</desc>
+  <defs>
+    <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#11131c"/><stop offset="1" stop-color="#191527"/></linearGradient>
+    <g id="desktop">
+      <rect width="198" height="152" rx="10" fill="#202331" stroke="#36394a"/>
+      <path d="M0 25H198" stroke="#36394a"/>
+      <circle cx="13" cy="13" r="3" fill="#78758c"/><circle cx="24" cy="13" r="3" fill="#78758c"/><circle cx="35" cy="13" r="3" fill="#78758c"/>
+      <rect x="14" y="40" width="80" height="8" rx="4" fill="#54596e"/>
+      <rect x="14" y="60" width="132" height="5" rx="2" fill="#3a4053"/>
+      <rect x="14" y="72" width="117" height="5" rx="2" fill="#3a4053"/>
+      <rect x="14" y="94" width="46" height="42" rx="5" fill="#343a50"/>
+      <rect x="68" y="94" width="46" height="42" rx="5" fill="#343a50"/>
+      <rect x="122" y="94" width="60" height="42" rx="5" fill="#343a50"/>
+    </g>
+    <g id="overlay">
+      <rect width="93" height="102" rx="7" fill="#101216" stroke="#9b75fb" stroke-width="1.5"/>
+      <rect width="93" height="22" rx="7" fill="#2e2248"/>
+      <circle cx="10" cy="11" r="3" fill="#b396ff"/>
+      <text x="19" y="15" fill="#eee8ff" font-family="Arial, sans-serif" font-size="9" font-weight="700">MeetMind</text>
+      <rect x="10" y="35" width="65" height="5" rx="2" fill="#79708d"/>
+      <rect x="10" y="47" width="54" height="5" rx="2" fill="#494357"/>
+      <rect x="10" y="60" width="65" height="5" rx="2" fill="#494357"/>
+      <rect x="10" y="77" width="37" height="14" rx="4" fill="#8a58ee"/>
+    </g>
+  </defs>
+  <rect width="1000" height="444" rx="20" fill="url(#bg)"/>
+  <text x="30" y="43" fill="#f5f3ff" font-family="Arial, sans-serif" font-size="24" font-weight="700">Same workspace. Different capture behavior.</text>
+  <text x="30" y="67" fill="#b6b0c7" font-family="Arial, sans-serif" font-size="13">Illustration only · test your actual OS and sharing application</text>
+  <rect x="24" y="91" width="464" height="294" rx="14" fill="#191c28" stroke="#403c55"/>
+  <rect x="512" y="91" width="464" height="294" rx="14" fill="#191c28" stroke="#403c55"/>
+  <text x="43" y="123" fill="#c8b5ff" font-family="Arial, sans-serif" font-size="18" font-weight="700">Protected mode</text>
+  <text x="43" y="144" fill="#aba6bb" font-family="Arial, sans-serif" font-size="12">Default · MEETMIND_VISIBLE unset</text>
+  <text x="531" y="123" fill="#9ddbd3" font-family="Arial, sans-serif" font-size="18" font-weight="700">Visible mode</text>
+  <text x="531" y="144" fill="#aba6bb" font-family="Arial, sans-serif" font-size="12">Demo / testing · MEETMIND_VISIBLE=1</text>
+  <text x="43" y="173" fill="#eeeaf7" font-family="Arial, sans-serif" font-size="12">Your desktop</text>
+  <text x="266" y="173" fill="#eeeaf7" font-family="Arial, sans-serif" font-size="12">Compatible capture</text>
+  <text x="531" y="173" fill="#eeeaf7" font-family="Arial, sans-serif" font-size="12">Your desktop</text>
+  <text x="754" y="173" fill="#eeeaf7" font-family="Arial, sans-serif" font-size="12">Capture output</text>
+  <use href="#desktop" x="42" y="186"/><use href="#overlay" x="136" y="223"/>
+  <use href="#desktop" x="266" y="186"/>
+  <use href="#desktop" x="530" y="186"/><use href="#overlay" x="624" y="223"/>
+  <use href="#desktop" x="754" y="186"/><use href="#overlay" x="848" y="223"/>
+  <text x="43" y="363" fill="#bbb4cc" font-family="Arial, sans-serif" font-size="12">You still see the overlay; supported capture paths can omit it.</text>
+  <text x="531" y="363" fill="#bbb4cc" font-family="Arial, sans-serif" font-size="12">The overlay can appear in screenshots and recordings.</text>
+  <text x="30" y="413" fill="#c6bdd7" font-family="Arial, sans-serif" font-size="12">Show / hide is separate: Ctrl+Shift+H toggles the window itself. Capture protection is platform-dependent.</text>
+</svg>
+
