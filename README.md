@@ -88,6 +88,21 @@ Real app screenshots from a separate, signed-out demo profile. No meeting, perso
   </tr>
 </table>
 
+**First-run setup** — the A/B choices new users answer before the tour:
+
+<table>
+  <tr>
+    <th>Answers: AI accounts or API key</th>
+    <th>Listening: press or always on</th>
+    <th>Your shortcuts</th>
+  </tr>
+  <tr>
+    <td><img src="docs/images/meetmind-setup-answers.png" alt="Setup step choosing between logged-in AI accounts and an own API key, with the API key form for Claude, OpenAI and Gemini" width="260"></td>
+    <td><img src="docs/images/meetmind-setup-listening.png" alt="Setup step choosing between press-to-listen and always listening, with the option to answer only when your name is said" width="260"></td>
+    <td><img src="docs/images/meetmind-setup-shortcuts.png" alt="Setup step showing editable global shortcuts" width="260"></td>
+  </tr>
+</table>
+
 Both screenshots were captured in **visible mode**. They show the UI, not proof that screen-share exclusion works. The current tour's blanket invisibility wording should be read with the platform caveats in this README. [Capture notes](docs/images/README.md)
 
 ## Quick start
