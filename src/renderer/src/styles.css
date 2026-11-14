@@ -445,3 +445,9 @@ kbd {
   display: inline-block; width: 7px; height: 15px; margin-left: 2px; vertical-align: -2px;
   background: var(--accent-2); animation: pulse 1s steps(2) infinite;
 }
+.copy-btn {
+  flex: none;
+  border: 1px solid var(--line); background: transparent; color: var(--muted);
+  border-radius: 6px; padding: 1px 7px; font-size: 11px; cursor: pointer;
+}
+.copy-btn:hover { background: var(--bg-3); color: var(--text); }

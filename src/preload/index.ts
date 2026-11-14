@@ -80,6 +80,8 @@ const api = {
       >
     >
   ) => ipcRenderer.send('set-listen', patch),
+  /** Copies via the main process, which works even when the window isn't focused. */
+  copyText: (text: string) => ipcRenderer.send('copy-text', text),
   hide: () => ipcRenderer.send('hide'),
   quit: () => ipcRenderer.send('quit')
 }

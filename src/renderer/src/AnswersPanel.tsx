@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { Answer, AppState } from '../../shared/types'
 import { prettyKeys } from './HotkeyEditor'
 
@@ -32,6 +33,7 @@ export function AnswersPanel({ answers, state }: { answers: Answer[]; state: App
             <span className="answer-kind">{a.kind === 'screen' ? '📸' : '🎙️'}</span>
             <span className="answer-q" title={a.question}>{a.question}</span>
             <span className="answer-by">{a.provider}</span>
+            {a.done && !a.error && <CopyButton text={a.text} />}
           </header>
           {a.error ? (
             <p className="error">{a.error}</p>
@@ -44,5 +46,23 @@ export function AnswersPanel({ answers, state }: { answers: Answer[]; state: App
         </article>
       ))}
     </main>
+  )
+}
+
+/** Text selection + Ctrl+C needs keyboard focus, which the window doesn't take in API mode. */
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false)
+  return (
+    <button
+      className="copy-btn"
+      title="Copy answer"
+      onClick={() => {
+        window.meetmind.copyText(text)
+        setCopied(true)
+        window.setTimeout(() => setCopied(false), 1500)
+      }}
+    >
+      {copied ? 'Copied' : 'Copy'}
+    </button>
   )
 }

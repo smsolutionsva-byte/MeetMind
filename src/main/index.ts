@@ -1,5 +1,6 @@
 import {
   app,
+  clipboard,
   desktopCapturer,
   dialog,
   globalShortcut,
@@ -164,8 +165,13 @@ async function captureAndAsk(): Promise<void> {
   setStatus('Capturing screen…')
   try {
     const image = await captureScreen()
-    if (!overlay.win.isVisible()) overlay.win.show()
-    overlay.win.focus()
+    if (settings.answerSource === 'web') {
+      // Pasting into the AI website needs keyboard focus.
+      if (!overlay.win.isVisible()) overlay.win.show()
+      overlay.win.focus()
+    } else if (!overlay.win.isVisible()) {
+      overlay.win.showInactive() // API mode: show the answer without taking focus
+    }
     await askAI({ kind: 'screen', question: 'Screenshot', text: await screenshotPrompt(settings), image })
   } catch (err) {
     console.error('[capture]', err)
@@ -490,6 +496,7 @@ function setupIpc(): void {
     else registerHotkeys()
   })
 
+  ipcMain.on('copy-text', (_e, text: string) => clipboard.writeText(String(text).slice(0, 100000)))
   ipcMain.on('hide', () => overlay.win.hide())
   ipcMain.on('quit', () => app.quit())
 }

@@ -165,7 +165,23 @@ export class Overlay {
 
   setWebHidden(hidden: boolean): void {
     this.webHidden = hidden
+    this.updateFocusable()
     this.show(this.settings.active)
+  }
+
+  /**
+   * In API mode with no settings/setup open, nothing in MeetMind needs the keyboard, so the
+   * window stops taking focus: clicking Ask or the mic leaves your meeting tab, document or
+   * chat box focused (and typing where it was). Web mode needs focus to paste into the AI site,
+   * and Settings needs it for text fields.
+   */
+  private updateFocusable(): void {
+    if (this.win.isDestroyed()) return
+    const focusable = !(this.webHidden && !this.panelOpen)
+    // Closing Settings while typing in it: give focus back to the app underneath instead of
+    // leaving no window focused.
+    if (!focusable && this.win.isFocused()) this.win.blur()
+    this.win.setFocusable(focusable)
   }
 
   /** Show/hide the live-caption strip; the AI tab (or the collapsed strip) makes room for it. */
@@ -181,6 +197,7 @@ export class Overlay {
 
   setPanel(open: boolean): void {
     this.panelOpen = open
+    this.updateFocusable()
     if (open && this.collapsed) this.setCollapsed(false)
     else this.show(this.settings.active)
   }
