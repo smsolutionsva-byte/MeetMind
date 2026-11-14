@@ -1,12 +1,13 @@
 {
   "name": "meetmind",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "main": "out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "start": "electron-vite preview",
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "dist:win": "electron-vite build && electron-builder --win"
   },
   "keywords": [
     "electron",
@@ -26,7 +27,10 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.3.0",
     "electron": "^41.7.1",
+    "electron-builder": "^26.18.0",
     "electron-vite": "^6.0.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
     "typescript": "^7.0.2",
     "vite": "^8.3.8"
   },
@@ -34,9 +38,8 @@
     "@anthropic-ai/sdk": "^1.8.0",
     "@google/genai": "^2.32.0",
     "@huggingface/transformers": "^4.3.2",
-    "openai": "^6.49.0",
-    "react": "^19.3.1",
-    "react-dom": "^19.3.1"
+    "openai": "^6.49.0"
   },
-  "author": ""
+  "author": "Shivansh Mukhia",
+  "homepage": "https://github.com/smsolutionsva-byte/MeetMind"
 }

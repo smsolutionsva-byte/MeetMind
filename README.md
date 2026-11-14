@@ -13,7 +13,7 @@ A compact desktop overlay for **ChatGPT · Claude · Gemini**, with screenshot p
 
 **Free and open source, forever.** If MeetMind saved you in a meeting, [buy me a chai on Ko-fi ☕](https://ko-fi.com/shivanshmukhia)
 
-[Quick start](#quick-start) · [Visible vs. protected](#visible-vs-protected-mode) · [Screenshots](#screenshots) · [Hotkeys](#hotkeys) · [Feature ideas](docs/ROADMAP.md)
+[Install](#install-windows) · [Visible vs. protected](#visible-vs-protected-mode) · [Screenshots](#screenshots) · [Hotkeys](#hotkeys) · [Feature ideas](docs/ROADMAP.md)
 
 </div>
 
@@ -108,7 +108,17 @@ Real app screenshots from a separate, signed-out demo profile. No meeting, perso
 
 Both screenshots were captured in **visible mode**. They show the UI, not proof that screen-share exclusion works. The tour screenshot predates the current welcome step, which now explains these platform caveats in the app. [Capture notes](docs/images/README.md)
 
-## Quick start
+## Install (Windows)
+
+1. Download **`MeetMind-Setup-<version>.exe`** from the [latest release](https://github.com/smsolutionsva-byte/MeetMind/releases/latest).
+2. Run it and choose where to install. It installs for your user only (no admin needed) and adds Start-menu and desktop shortcuts.
+3. Windows may show **"Windows protected your PC"** because the installer isn't code-signed yet. Click **More info → Run anyway**. The source is all here if you'd rather [build it yourself](#build-from-source).
+
+Uninstall from **Settings → Apps** like any other app. Your settings, logins and downloaded speech models live in `%APPDATA%\meetmind`; delete that folder too for a full clean-up.
+
+The installer is free. If MeetMind helps you, [a Ko-fi tip](https://ko-fi.com/shivanshmukhia) keeps it going ☕
+
+## Build from source
 
 Requires **Node.js 20+** and npm. Provider sign-in and account limits still apply.
 
@@ -127,8 +137,9 @@ For a demo or screenshot session on Windows, use the visible-mode command above.
 | `npm run typecheck` | Check TypeScript |
 | `npm run build` | Build the app into `out/` |
 | `npm start` | Run the built app |
+| `npm run dist:win` | Build the Windows installer into `dist/` |
 
-No installer is included yet. The first speech-model use requires a download; model sizes shown in Settings are approximate.
+The first speech-model use requires a download; model sizes shown in Settings are approximate.
 
 ## Hotkeys
 

@@ -1,0 +1,42 @@
+appId: com.meetmind.app
+productName: MeetMind
+copyright: Copyright © 2026 MeetMind contributors
+
+directories:
+  output: dist
+  buildResources: build
+
+files:
+  - out/**
+  - package.json
+  # The speech engine ships binaries for every OS; a Windows x64 build only needs its own.
+  - "!node_modules/onnxruntime-node/bin/napi-v*/darwin/**"
+  - "!node_modules/onnxruntime-node/bin/napi-v*/linux/**"
+  - "!node_modules/onnxruntime-node/bin/napi-v*/win32/arm64/**"
+  # transformers' Node build loads onnxruntime-node and inlines what it needs from the web runtime.
+  - "!node_modules/onnxruntime-web/**"
+  # Types, source maps and docs aren't needed at runtime.
+  - "!node_modules/**/*.{d.ts,d.mts,d.cts,map,md,markdown}"
+  - "!node_modules/**/{test,tests,__tests__,docs,example,examples}/**"
+
+# Native modules can't be loaded from inside the asar archive.
+asarUnpack:
+  - "**/*.node"
+  - "node_modules/onnxruntime-node/**"
+  - "node_modules/sharp/**"
+  - "node_modules/@img/**"
+
+win:
+  icon: build/icon.png
+  target:
+    - target: nsis
+      arch: [x64]
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: MeetMind
+  artifactName: MeetMind-Setup-${version}.exe
