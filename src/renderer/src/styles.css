@@ -451,3 +451,23 @@ kbd {
   border-radius: 6px; padding: 1px 7px; font-size: 11px; cursor: pointer;
 }
 .copy-btn:hover { background: var(--bg-3); color: var(--text); }
+
+/* ---- Support reminder ---- */
+.support { flex: 1; display: grid; place-items: center; padding: 20px; }
+.support-card {
+  max-width: 330px;
+  text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  animation: rise .25s ease-out;
+}
+.support-cup {
+  font-size: 34px;
+  width: 64px; height: 64px; display: grid; place-items: center;
+  border-radius: 20px; background: var(--bg-2); border: 1px solid var(--line);
+  margin-bottom: 8px;
+}
+.support-card h2 { margin: 0 0 4px; font-size: 18px; }
+.support-card p { margin: 0 0 8px; color: #c4c8d2; line-height: 1.5; }
+.support-actions { display: flex; gap: 8px; margin-top: 6px; }
+.support-actions .ghost { border-style: solid; }
+.support-done { margin-top: 10px; font-size: 12px; }

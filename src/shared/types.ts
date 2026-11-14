@@ -54,7 +54,19 @@ export interface Answer {
   provider: string
 }
 
+export const SUPPORT_URL = 'https://ko-fi.com/shivanshmukhia'
+
+/** WinRAR-style support reminder bookkeeping. The app works the same either way. */
+export interface SupportState {
+  launches: number
+  /** When the reminder was last shown (ms since epoch). */
+  lastShown: number
+  /** User said they already supported: never show again. */
+  supported: boolean
+}
+
 export interface Settings {
+  support: SupportState
   /** Where answers come from: your logged-in AI sites, or your own API key. */
   answerSource: AnswerSource
   apiProvider: ApiProvider

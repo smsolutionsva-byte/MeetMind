@@ -14,6 +14,7 @@ import { Choice } from './Choice'
 import { HotkeyEditor, prettyKeys } from './HotkeyEditor'
 import { PromptPicker } from './PromptPicker'
 import { Recorder } from './recorder'
+import { SupportCard } from './SupportCard'
 import { Tutorial } from './Tutorial'
 
 const api = window.meetmind
@@ -102,6 +103,7 @@ export function App() {
   const [tourTarget, setTourTarget] = useState<string | null>(null)
   const [audioPrompt, setAudioPrompt] = useState('')
   const [myName, setMyName] = useState('')
+  const [supportOpen, setSupportOpen] = useState(false)
   const listen = useListen(state)
   const streams = useStreams()
   const flashTimer = useRef<number | undefined>(undefined)
@@ -127,6 +129,24 @@ export function App() {
   }, [])
 
   const recording = listen.seconds !== null
+
+  // The main process decides when the reminder is due; skip it if the user is mid-task here.
+  const canShowSupport = useRef(false)
+  canShowSupport.current = !!state && state.settings.onboarded && !recording && !panel && !state.busy
+  useEffect(
+    () =>
+      api.onShowSupport(() => {
+        if (!canShowSupport.current) return
+        setSupportOpen(true)
+        api.setPanel(true) // hide the AI tab so the card has the window
+      }),
+    []
+  )
+  const closeSupport = () => {
+    setSupportOpen(false)
+    api.setPanel(false)
+  }
+
   useEffect(() => {
     if (recording) streams.clearCaptions()
   }, [recording])
@@ -256,7 +276,9 @@ export function App() {
 
       {touring && <Tutorial state={state} onTarget={setTourTarget} onDone={endTour} />}
 
-      {!touring && !panel && apiMode && <AnswersPanel answers={streams.answers} state={state} />}
+      {supportOpen && !touring && !panel && <SupportCard onClose={closeSupport} />}
+
+      {!touring && !panel && !supportOpen && apiMode && <AnswersPanel answers={streams.answers} state={state} />}
 
       {panel && !touring && (
         <main className="panel">
@@ -427,6 +449,7 @@ export function App() {
               {!apiMode && <button onClick={() => { togglePanel(false); api.back() }}>Back</button>}
               {!apiMode && <button onClick={() => { togglePanel(false); api.reload() }}>Reload tab</button>}
               <button onClick={startTour}>Setup &amp; tour</button>
+              <button onClick={() => api.supportAction('open')}>Support ☕</button>
               <button className="danger" onClick={() => api.quit()}>Quit</button>
             </div>
           </section>

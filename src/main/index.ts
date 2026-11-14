@@ -8,6 +8,7 @@ import {
   Menu,
   nativeImage,
   session,
+  shell,
   Tray,
   type NativeImage
 } from 'electron'
@@ -25,6 +26,7 @@ import {
   LANGUAGES,
   PROMPT_PRESETS,
   PROVIDERS,
+  SUPPORT_URL,
   WHISPER_MODELS,
   type Answer,
   type ApiProvider,
@@ -107,6 +109,7 @@ async function askAI(req: { kind: 'screen' | 'audio'; question: string; text: st
     return
   }
   busy = true
+  markActivity()
   try {
     const name = tabName(settings.active)
     setStatus(settings.autoSend ? `Sending to ${name}…` : `Pasting into ${name}…`)
@@ -128,6 +131,35 @@ async function askAI(req: { kind: 'screen' | 'audio'; question: string; text: st
   }
 }
 
+// ---- WinRAR-style support reminder: occasional, skippable, never mid-meeting ----
+
+const SUPPORT_EVERY_MS = 14 * 24 * 60 * 60 * 1000
+let lastActivityAt = 0 // last answer/recording activity; the reminder waits for a quiet moment
+
+function markActivity(): void {
+  lastActivityAt = Date.now()
+}
+
+function supportDue(): boolean {
+  const s = settings.support
+  if (process.env.MEETMIND_SHOW_SUPPORT) return true // testing / screenshots
+  return !s.supported && s.launches >= 3 && Date.now() - s.lastShown > SUPPORT_EVERY_MS
+}
+
+function scheduleSupportReminder(): void {
+  if (!supportDue()) return
+  const firstDelay = process.env.MEETMIND_SHOW_SUPPORT ? 5000 : 2 * 60 * 1000
+  const tryShow = () => {
+    const quiet =
+      settings.onboarded && !listening && !busy && Date.now() - lastActivityAt > 60_000 && overlay.win.isVisible()
+    if (!quiet) return void setTimeout(tryShow, 60_000)
+    settings.support.lastShown = Date.now()
+    broadcast()
+    send('show-support', null)
+  }
+  setTimeout(tryShow, firstDelay)
+}
+
 async function askApi(req: { kind: 'screen' | 'audio'; question: string; text: string; image?: NativeImage }) {
   const provider = settings.apiProvider
   const answer: Answer = {
@@ -144,6 +176,7 @@ async function askApi(req: { kind: 'screen' | 'audio'; question: string; text: s
     return
   }
   send('answer', answer)
+  markActivity()
   setStatus(`Asking ${apiName(provider)}…`)
   try {
     await streamAnswer(
@@ -154,6 +187,7 @@ async function askApi(req: { kind: 'screen' | 'audio'; question: string; text: s
       }
     )
     send('answer', { ...answer, done: true })
+    markActivity()
     setStatus(`Answered by ${apiName(provider)}`)
   } catch (err) {
     send('answer', { ...answer, done: true, error: (err as Error).message })
@@ -347,6 +381,8 @@ function setupTray(): void {
       { label: 'Screenshot and ask', click: () => void captureAndAsk() },
       { label: 'Listen start / stop', click: () => toggleListen() },
       { type: 'separator' },
+      { label: 'Support MeetMind ☕', click: () => void shell.openExternal(SUPPORT_URL) },
+      { type: 'separator' },
       { label: 'Quit MeetMind', click: () => app.quit() }
     ])
   )
@@ -415,6 +451,7 @@ function setupIpc(): void {
   // Listening
   ipcMain.on('listening', (_e, on: boolean) => {
     listening = !!on
+    markActivity()
     const isLive = listening && settings.listenMode === 'live'
     overlay.setTranscriptBar(isLive)
     if (listening) {
@@ -496,6 +533,13 @@ function setupIpc(): void {
     else registerHotkeys()
   })
 
+  ipcMain.on('support-action', (_e, action: string) => {
+    if (action === 'open') void shell.openExternal(SUPPORT_URL)
+    if (action === 'supported') {
+      settings.support.supported = true
+      broadcast()
+    }
+  })
   ipcMain.on('copy-text', (_e, text: string) => clipboard.writeText(String(text).slice(0, 100000)))
   ipcMain.on('hide', () => overlay.win.hide())
   ipcMain.on('quit', () => app.quit())
@@ -509,6 +553,9 @@ app.whenReady().then(() => {
   applyAnswerSource()
   setupTray()
   registerHotkeys()
+  settings.support.launches++
+  saveSettings(settings)
+  scheduleSupportReminder()
 })
 
 app.on('second-instance', () => {

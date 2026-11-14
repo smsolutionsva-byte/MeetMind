@@ -9,6 +9,9 @@ A compact desktop overlay for **ChatGPT · Claude · Gemini**, with screenshot p
 [![License: MIT](https://img.shields.io/badge/License-MIT-a78bfa.svg)](LICENSE)
 [![Built with Electron](https://img.shields.io/badge/Built_with-Electron-47848f.svg)](https://www.electronjs.org/)
 [![UI: React + TypeScript](https://img.shields.io/badge/UI-React_%2B_TypeScript-61dafb.svg)](package.json)
+[![Support on Ko-fi](https://img.shields.io/badge/Support-Ko--fi-ff5e5b.svg?logo=ko-fi&logoColor=white)](https://ko-fi.com/shivanshmukhia)
+
+**Free and open source, forever.** If MeetMind saved you in a meeting, [buy me a chai on Ko-fi ☕](https://ko-fi.com/shivanshmukhia)
 
 [Quick start](#quick-start) · [Visible vs. protected](#visible-vs-protected-mode) · [Screenshots](#screenshots) · [Hotkeys](#hotkeys) · [Feature ideas](docs/ROADMAP.md)
 
@@ -191,6 +194,7 @@ Clearing those environment variables does not delete the demo's files.
 |---|---|
 | `MEETMIND_VISIBLE=1` | Leave app windows capturable; clear the variable for default protection |
 | `MEETMIND_USER_DATA=<folder>` | Separate settings, provider sessions and model cache |
+| `MEETMIND_SHOW_SUPPORT=1` | Show the support reminder about 5 seconds after launch (for testing its look) |
 | `MEETMIND_DRY_RUN=1` | Listen mode logs the transcript instead of sending it to the AI; avoid sensitive audio in test logs |
 
 ## How it works
@@ -229,6 +233,10 @@ Later ideas: local Ollama models, and explicit confirmation before typing an ans
 | **Gemini** | Additional AI tool acknowledged at the maintainer's request; also an available in-app AI provider |
 
 This section credits people/tools without claiming they all authored code. GitHub's **Contributors** graph is generated from attributable commits; listing a tool here does not create a contributor account or verified commit attribution.
+
+## Support the project
+
+MeetMind is free, and every feature works whether or not you pay. Now and then the app shows a small "support MeetMind" card with a **Continue free** button (never during a recording or while an answer is coming in); clicking **I already supported** hides it for good. Tips go through [Ko-fi](https://ko-fi.com/shivanshmukhia) and keep the project going ☕
 
 ## Contributing
 

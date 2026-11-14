@@ -14,6 +14,7 @@ import {
 const file = () => join(app.getPath('userData'), 'settings.json')
 
 const defaults: Settings = {
+  support: { launches: 0, lastShown: 0, supported: false },
   answerSource: 'web',
   apiProvider: 'anthropic',
   apiModels: Object.fromEntries(API_PROVIDERS.map((p) => [p.id, p.defaultModel])) as Settings['apiModels'],
@@ -43,6 +44,7 @@ export function loadSettings(): Settings {
     if (!PROMPT_PRESETS.some((p) => p.id === s.promptMode)) s.promptMode = defaults.promptMode
     // Merge nested objects so new keys get defaults.
     s.hotkeys = { ...DEFAULT_HOTKEYS, ...(rest.hotkeys ?? {}) }
+    s.support = { ...defaults.support, ...(rest.support ?? {}) }
     s.apiModels = { ...defaults.apiModels, ...(rest.apiModels ?? {}) }
     if (!API_PROVIDERS.some((p) => p.id === s.apiProvider)) s.apiProvider = defaults.apiProvider
     if (s.answerSource !== 'api') s.answerSource = 'web'
