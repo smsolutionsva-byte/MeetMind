@@ -1,22 +1,30 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
+  API_PROVIDERS,
   DEFAULT_AUDIO_PROMPT,
   LANGUAGES,
   PROVIDERS,
   WHISPER_MODELS,
+  type Answer,
   type AppState
 } from '../../shared/types'
+import { AnswersPanel } from './AnswersPanel'
+import { ApiSetup } from './ApiSetup'
+import { Choice } from './Choice'
+import { HotkeyEditor, prettyKeys } from './HotkeyEditor'
 import { PromptPicker } from './PromptPicker'
 import { Recorder } from './recorder'
 import { Tutorial } from './Tutorial'
 
 const api = window.meetmind
+/** Keep the newest words of a long caption visible. */
+const tail = (text: string, max = 90) => (text.length > max ? '…' + text.slice(-max) : text)
 const fmtTime = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`
 
 /** Owns the audio recorder; the hotkey in main and the Listen button both toggle it. */
 function useListen(state: AppState | null) {
   const recorder = useRef(new Recorder())
-  const recording = useRef(false)
+  const recording = useRef<'push' | 'live' | null>(null)
   const starting = useRef(false)
   const stateRef = useRef(state)
   stateRef.current = state
@@ -32,18 +40,23 @@ function useListen(state: AppState | null) {
     const s = stateRef.current
     if (!s || starting.current) return
     if (recording.current) {
-      recording.current = false
+      const mode = recording.current
+      recording.current = null
       setSeconds(null)
-      const audio = await recorder.current.stop()
+      const audio = await recorder.current.stop() // live mode flushes its last sentence here
       api.setListening(false)
-      api.sendAudio(audio)
+      if (mode === 'push') api.sendAudio(audio)
       return
     }
-    if (s.busy) return
     starting.current = true
+    const mode = s.settings.listenMode
     try {
-      await recorder.current.start({ system: s.settings.listenSystem, mic: s.settings.listenMic })
-      recording.current = true
+      await recorder.current.start({
+        system: s.settings.listenSystem,
+        mic: s.settings.listenMic,
+        onSegment: mode === 'live' ? (seg) => api.sendLiveSegment(seg) : undefined
+      })
+      recording.current = mode
       setSeconds(0)
       api.setListening(true)
     } catch (err) {
@@ -58,6 +71,29 @@ function useListen(state: AppState | null) {
   return { seconds, toggle }
 }
 
+/** Answers (API mode) and live captions streamed from the main process. */
+function useStreams() {
+  const [answers, setAnswers] = useState<Answer[]>([])
+  const [captions, setCaptions] = useState<string[]>([])
+  useEffect(() => {
+    const offAnswer = api.onAnswer((a) =>
+      setAnswers((list) => {
+        const i = list.findIndex((x) => x.id === a.id)
+        if (i === -1) return [a, ...list].slice(0, 20)
+        const next = list.slice()
+        next[i] = a
+        return next
+      })
+    )
+    const offCaption = api.onTranscript((line) => setCaptions((c) => [...c, line.text].slice(-6)))
+    return () => {
+      offAnswer()
+      offCaption()
+    }
+  }, [])
+  return { answers, captions, clearCaptions: () => setCaptions([]) }
+}
+
 export function App() {
   const [state, setState] = useState<AppState | null>(null)
   const [panel, setPanel] = useState(false)
@@ -65,7 +101,9 @@ export function App() {
   const [tourAgain, setTourAgain] = useState(false)
   const [tourTarget, setTourTarget] = useState<string | null>(null)
   const [audioPrompt, setAudioPrompt] = useState('')
+  const [myName, setMyName] = useState('')
   const listen = useListen(state)
+  const streams = useStreams()
   const flashTimer = useRef<number | undefined>(undefined)
   const wasBusy = useRef(false)
 
@@ -73,6 +111,7 @@ export function App() {
     api.getState().then((s) => {
       setState(s)
       setAudioPrompt(s.settings.audioPrompt)
+      setMyName(s.settings.myName)
     })
     return api.onState((s) => {
       setState(s)
@@ -87,6 +126,11 @@ export function App() {
     })
   }, [])
 
+  const recording = listen.seconds !== null
+  useEffect(() => {
+    if (recording) streams.clearCaptions()
+  }, [recording])
+
   const togglePanel = (open: boolean) => {
     setPanel(open)
     api.setPanel(open)
@@ -94,8 +138,9 @@ export function App() {
 
   if (!state) return null
   const { settings } = state
+  const apiMode = settings.answerSource === 'api'
   const askLabel = state.busy ? state.status : flash || 'Ask'
-  const recording = listen.seconds !== null
+  const liveOn = recording && settings.listenMode === 'live'
   const touring = !settings.onboarded || tourAgain
   /** Spotlight ring on the toolbar element the tutorial is explaining. */
   const spot = (name: string) => (touring && tourTarget === name ? ' spotlight' : '')
@@ -121,31 +166,45 @@ export function App() {
           <span className="dot" />
         </div>
         <nav className={`tabs${spot('tabs')}`}>
-          {PROVIDERS.map((p, i) => (
-            <button
-              key={p.id}
-              className={`tab ${settings.active === p.id && !panel && !touring ? 'active' : ''}`}
-              title={`${p.name}  (Ctrl+Shift+${i + 1})`}
-              onClick={() => {
-                if (panel) togglePanel(false)
-                api.setProvider(p.id)
-              }}
-            >
-              {p.name}
-            </button>
-          ))}
+          {apiMode
+            ? API_PROVIDERS.map((p) => (
+                <button
+                  key={p.id}
+                  className={`tab ${settings.apiProvider === p.id && !panel && !touring ? 'active' : ''}`}
+                  title={`Answer with the ${p.name} API`}
+                  onClick={() => {
+                    if (panel) togglePanel(false)
+                    api.setApi({ provider: p.id })
+                  }}
+                >
+                  {p.name}
+                </button>
+              ))
+            : PROVIDERS.map((p, i) => (
+                <button
+                  key={p.id}
+                  className={`tab ${settings.active === p.id && !panel && !touring ? 'active' : ''}`}
+                  title={`${p.name}  (${prettyKeys(settings.hotkeys[`tab${i + 1}` as 'tab1'])})`}
+                  onClick={() => {
+                    if (panel) togglePanel(false)
+                    api.setProvider(p.id)
+                  }}
+                >
+                  {p.name}
+                </button>
+              ))}
         </nav>
         <div className="drag-space" />
         <button
-          className={`listen ${recording ? 'rec' : ''}${spot('listen')}`}
-          disabled={state.busy && !recording}
-          title={recording ? 'Stop and ask the AI  (Ctrl+Shift+L)' : 'Listen to the meeting  (Ctrl+Shift+L)'}
+          className={`listen ${recording ? 'rec' : ''} ${liveOn ? 'live' : ''}${spot('listen')}`}
+          title={`${recording ? 'Stop listening' : settings.listenMode === 'live' ? 'Start live listening' : 'Listen to the meeting'}  (${prettyKeys(settings.hotkeys.listen)})`}
           onClick={() => void listen.toggle()}
         >
           {recording ? (
             <>
               <span className="rec-dot" />
-              <span>{fmtTime(listen.seconds!)}</span>
+              {/* Live mode: the captions strip already says LIVE, keep the button small. */}
+              {!liveOn && <span>{fmtTime(listen.seconds!)}</span>}
             </>
           ) : (
             <MicIcon />
@@ -154,7 +213,7 @@ export function App() {
         <button
           className={`ask ${state.busy ? 'busy' : ''}${spot('ask')}`}
           disabled={state.busy}
-          title="Screenshot → ask the AI  (Ctrl+Shift+Space)"
+          title={`Screenshot → ask the AI  (${prettyKeys(settings.hotkeys.ask)})`}
           onClick={() => api.capture()}
         >
           <CameraIcon />
@@ -179,14 +238,25 @@ export function App() {
         </button>
         <button
           className={`icon close${spot('window')}`}
-          title="Hide to tray  (Ctrl+Shift+H brings it back)"
+          title={`Hide to tray  (${prettyKeys(settings.hotkeys.toggle)} brings it back)`}
           onClick={() => api.hide()}
         >
           <CloseIcon />
         </button>
       </header>
 
-      {touring && <Tutorial settings={settings} onTarget={setTourTarget} onDone={endTour} />}
+      {liveOn && (
+        <div className="captions" aria-live="polite">
+          <span className="live-pill">LIVE</span>
+          <span className="caption-text">
+            {streams.captions.length ? tail(streams.captions[streams.captions.length - 1]) : 'Listening for speech…'}
+          </span>
+        </div>
+      )}
+
+      {touring && <Tutorial state={state} onTarget={setTourTarget} onDone={endTour} />}
+
+      {!touring && !panel && apiMode && <AnswersPanel answers={streams.answers} state={state} />}
 
       {panel && !touring && (
         <main className="panel">
@@ -198,20 +268,78 @@ export function App() {
           )}
 
           <section>
+            <h3>Answers come from</h3>
+            <Choice
+              label="Answer source"
+              value={settings.answerSource}
+              onChange={(v) => api.setAnswerSource(v)}
+              options={[
+                { id: 'web', title: 'My ChatGPT / Claude / Gemini', desc: 'Your logged-in accounts in the floating window. No key needed.' },
+                { id: 'api', title: 'My own API key', desc: 'Faster, answers right here. You pay the provider per use.' }
+              ]}
+            />
+            {apiMode && <ApiSetup state={state} />}
+          </section>
+
+          <section>
             <h3>Screenshot → AI</h3>
-            <label className="row">
-              <input
-                type="checkbox"
-                checked={settings.autoSend}
-                onChange={(e) => api.setAutoSend(e.target.checked)}
-              />
-              <span>Send automatically after pasting</span>
-            </label>
+            {!apiMode && (
+              <label className="row">
+                <input
+                  type="checkbox"
+                  checked={settings.autoSend}
+                  onChange={(e) => api.setAutoSend(e.target.checked)}
+                />
+                <span>Send automatically after pasting</span>
+              </label>
+            )}
             <PromptPicker settings={settings} />
           </section>
 
           <section>
-            <h3>Listen → AI</h3>
+            <h3>Listening</h3>
+            <Choice
+              label="Listening mode"
+              value={settings.listenMode}
+              onChange={(v) => api.setListen({ listenMode: v })}
+              options={[
+                { id: 'push', title: 'Press to listen', desc: 'Press once to start, again to stop and ask.' },
+                { id: 'live', title: 'Always listening', desc: 'Live captions; questions get answered automatically.' }
+              ]}
+            />
+            {settings.listenMode === 'live' && (
+              <div className="live-options">
+                <label className="row">
+                  <input
+                    type="radio"
+                    name="trigger"
+                    checked={settings.liveTrigger === 'questions'}
+                    onChange={() => api.setListen({ liveTrigger: 'questions' })}
+                  />
+                  <span>Answer every question</span>
+                </label>
+                <label className="row">
+                  <input
+                    type="radio"
+                    name="trigger"
+                    checked={settings.liveTrigger === 'name'}
+                    onChange={() => api.setListen({ liveTrigger: 'name' })}
+                  />
+                  <span>Only when someone says my name</span>
+                </label>
+                {settings.liveTrigger === 'name' && (
+                  <input
+                    className="text-input"
+                    value={myName}
+                    placeholder="Your name, as people say it"
+                    onChange={(e) => {
+                      setMyName(e.target.value)
+                      api.setListen({ myName: e.target.value })
+                    }}
+                  />
+                )}
+              </div>
+            )}
             <label className="row">
               <input
                 type="checkbox"
@@ -278,6 +406,11 @@ export function App() {
           </section>
 
           <section>
+            <h3>Shortcuts</h3>
+            <HotkeyEditor state={state} />
+          </section>
+
+          <section>
             <h3>Window</h3>
             <label className="field">
               <span>Opacity {Math.round(settings.opacity * 100)}%</span>
@@ -291,27 +424,19 @@ export function App() {
               />
             </label>
             <div className="buttons">
-              <button onClick={() => { togglePanel(false); api.back() }}>Back</button>
-              <button onClick={() => { togglePanel(false); api.reload() }}>Reload tab</button>
-              <button onClick={startTour}>Tutorial</button>
+              {!apiMode && <button onClick={() => { togglePanel(false); api.back() }}>Back</button>}
+              {!apiMode && <button onClick={() => { togglePanel(false); api.reload() }}>Reload tab</button>}
+              <button onClick={startTour}>Setup &amp; tour</button>
               <button className="danger" onClick={() => api.quit()}>Quit</button>
             </div>
           </section>
 
-          <section>
-            <h3>Hotkeys</h3>
-            <dl className="keys">
-              <dt>Ctrl+Shift+Space</dt><dd>Screenshot and ask</dd>
-              <dt>Ctrl+Shift+L</dt><dd>Listen start / stop and ask</dd>
-              <dt>Ctrl+Shift+H</dt><dd>Show / hide</dd>
-              <dt>Ctrl+Shift+1 / 2 / 3</dt><dd>ChatGPT / Claude / Gemini</dd>
-            </dl>
-          </section>
-
-          <p className="hint">
-            Log in once in each tab and the login is saved. If Google sign-in is refused, use
-            email login on that site instead.
-          </p>
+          {!apiMode && (
+            <p className="hint">
+              Log in once in each tab and the login is saved. If Google sign-in is refused, use
+              email login on that site instead.
+            </p>
+          )}
         </main>
       )}
     </div>

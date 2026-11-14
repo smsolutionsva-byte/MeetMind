@@ -2,6 +2,8 @@ import { app } from 'electron'
 import { readFileSync, writeFileSync, mkdirSync } from 'fs'
 import { join, dirname } from 'path'
 import {
+  API_PROVIDERS,
+  DEFAULT_HOTKEYS,
   DEFAULT_AUDIO_PROMPT,
   PROMPT_PRESETS,
   PROVIDERS,
@@ -12,6 +14,13 @@ import {
 const file = () => join(app.getPath('userData'), 'settings.json')
 
 const defaults: Settings = {
+  answerSource: 'web',
+  apiProvider: 'anthropic',
+  apiModels: Object.fromEntries(API_PROVIDERS.map((p) => [p.id, p.defaultModel])) as Settings['apiModels'],
+  listenMode: 'push',
+  liveTrigger: 'questions',
+  myName: '',
+  hotkeys: { ...DEFAULT_HOTKEYS },
   active: 'chatgpt',
   autoSend: true,
   promptMode: 'short',
@@ -32,6 +41,12 @@ export function loadSettings(): Settings {
     const { prompt: _legacy, ...rest } = raw
     const s: Settings = { ...defaults, ...rest }
     if (!PROMPT_PRESETS.some((p) => p.id === s.promptMode)) s.promptMode = defaults.promptMode
+    // Merge nested objects so new keys get defaults.
+    s.hotkeys = { ...DEFAULT_HOTKEYS, ...(rest.hotkeys ?? {}) }
+    s.apiModels = { ...defaults.apiModels, ...(rest.apiModels ?? {}) }
+    if (!API_PROVIDERS.some((p) => p.id === s.apiProvider)) s.apiProvider = defaults.apiProvider
+    if (s.answerSource !== 'api') s.answerSource = 'web'
+    if (s.listenMode !== 'live') s.listenMode = 'push'
     if (!PROVIDERS.some((p) => p.id === s.active)) s.active = defaults.active
     s.opacity = Math.min(1, Math.max(0.3, Number(s.opacity) || 1))
     if (!WHISPER_MODELS.some((m) => m.id === s.whisperModel)) s.whisperModel = defaults.whisperModel

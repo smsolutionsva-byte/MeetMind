@@ -18,11 +18,12 @@ A compact desktop overlay for **ChatGPT · Claude · Gemini**, with screenshot p
 
 ## What it does
 
-- **Bring your own AI account.** Switch between ChatGPT, Claude and Gemini. Provider logins persist between launches; no separate API key is required.
+- **Bring your own AI account — or your own API key.** Use your logged-in ChatGPT, Claude or Gemini in the floating window (no key required), or paste a Claude, OpenAI or Gemini API key and get answers streamed straight into MeetMind. Keys are encrypted with the OS keychain and stay on your PC.
 - **Ask about your screen.** A hotkey captures the display under your cursor and pastes it into the active AI with your chosen prompt. Automatic sending is optional.
-- **Listen, then ask.** Record a segment, transcribe it locally with Whisper, and send the text to your AI. Windows loopback audio can capture the call, with an optional microphone.
+- **Listen: press-to-talk or always on.** Record a segment and ask, or turn on **always listening**: live captions of the call, with questions (or only questions after your name) answered automatically. Speech is transcribed locally with Whisper; Windows loopback audio captures the call, with an optional microphone.
 - **Add useful context.** Choose Short, Detailed, image-only, or a custom prompt with a local Markdown/text context file.
-- **Keep the interface compact.** Always-on-top window, adjustable opacity, collapse-to-toolbar, hide-to-tray and a first-run tour.
+- **Your shortcuts, your setup.** A first-run setup asks the important A/B questions (AI accounts vs. API key, press-to-talk vs. always listening), then tours every button. All shortcuts are customizable, with conflict warnings.
+- **Keep the interface compact.** Always-on-top window, adjustable opacity, collapse-to-toolbar, hide-to-tray and a drag grip.
 - **Choose how it appears in captures.** Capture protection is enabled by default; visible mode is available for demos and debugging.
 
 > Capture protection is a best-effort OS feature, not a guarantee of invisibility in every recorder. Check your exact OS and sharing application before relying on it. [Platform limitations ↓](#capture-protection-limitations)
@@ -122,7 +123,7 @@ No installer is included yet. The first speech-model use requires a download; mo
 | `Ctrl+Shift+2` | Switch to Claude |
 | `Ctrl+Shift+3` | Switch to Gemini |
 
-The app registers Command-or-Control shortcuts, so **Command** replaces Ctrl on macOS. The tray's purple-dot menu can show, hide and quit the app. If a shortcut is already registered by another app or another MeetMind instance, it may be unavailable; check the terminal output.
+These are the defaults: change any of them in **Settings → Shortcuts** (click, press new keys; Backspace turns one off). A shortcut another app already owns is flagged in red. The app registers Command-or-Control shortcuts, so **Command** replaces Ctrl on macOS. The tray's purple-dot menu can show, hide and quit the app. If a shortcut is already registered by another app or another MeetMind instance, it may be unavailable; check the terminal output.
 
 ## Capture-protection limitations
 
@@ -141,9 +142,11 @@ Source: [Electron content-protection documentation](https://www.electronjs.org/d
 ## Privacy & data flow
 
 ```text
-Screenshot + prompt/context ────────────► selected AI website
-Meeting audio ──► local Whisper ──► transcript + prompt ──► selected AI website
+Screenshot + prompt/context ────────────► selected AI website  (or API, in API-key mode)
+Meeting audio ──► local Whisper ──► transcript + prompt ──► selected AI website  (or API)
 ```
+
+In API-key mode, screenshots are downscaled to 1600 px wide and sent as JPEG directly to the provider you chose; nothing goes through a MeetMind server, because there isn't one.
 
 Speech recognition runs locally; AI replies still come from the provider you use. Model downloads, provider pages, account sign-in and provider-side processing require network access. “Local transcription” is not a claim that the entire app is offline.
 
@@ -182,21 +185,22 @@ Clearing those environment variables does not delete the demo's files.
 - **Listen flow:** Windows system audio uses loopback capture; microphone input is optional. Audio is resampled to 16 kHz and transcribed in a Whisper worker thread via Transformers.js.
 - **Provider integration:** uses the providers' web interfaces, so account restrictions and site changes can affect login, paste or Send. A Chrome-style user agent is used; successful third-party sign-in is not guaranteed.
 - **Speech models:** the selected model is cached under the app-data directory after download.
+- **Always listening:** a simple voice detector cuts the call audio at pauses; each sentence is transcribed in order. A question (ends with "?" or starts with what/why/how/can you…) — or, optionally, a line after your name — triggers an answer, at most once every 6 seconds. Common Whisper hallucinations on silence ("Thank you.") are filtered out.
+- **API-key mode:** official SDKs (`@anthropic-ai/sdk`, `openai`, `@google/genai`) stream the answer. Defaults: `claude-opus-5-5` (low effort for speed, with server-side refusal fallback enabled), `gpt-5.6-sol`, `gemini-3.8-flash`; the model name is editable in Settings.
 
 ## Roadmap & feature ideas
 
-Implemented: screenshot-to-AI, provider tabs, prompt presets/context, local listen/transcribe flow, onboarding and compact overlay controls.
+Implemented: screenshot-to-AI, provider tabs, prompt presets/context, local listen/transcribe flow, always-listening mode with question detection, API-key mode (Claude/OpenAI/Gemini), configurable shortcuts with conflict feedback, A/B setup wizard, onboarding and compact overlay controls.
 
 Suggested next improvements:
 
 1. **Mode badge & capture diagnostics** — make Visible/Protected intent obvious and show platform caveats.
 2. **Area capture with preview/redaction** — choose what leaves the device before sending.
-3. **Configurable hotkeys & conflict feedback** — detect unavailable shortcuts and offer alternatives.
-4. **Push-to-talk & cancelable transcription** — predictable recording and recovery from long/failed jobs.
-5. **Opt-in transcript history/export** — local Markdown notes, clear retention and one-click clearing.
-6. **Installers & CI checks** — signed releases where feasible, type/build checks and platform smoke tests.
+3. **Cancelable transcription** — predictable recording and recovery from long/failed jobs.
+4. **Opt-in transcript history/export** — local Markdown notes, clear retention and one-click clearing.
+5. **Installers & CI checks** — signed releases where feasible, type/build checks and platform smoke tests.
 
-Later ideas: live transcript/question detection, optional API/Ollama mode, and explicit confirmation before typing an answer into another app. These are **proposals**, not shipped features. [Prioritized ideas and acceptance criteria](docs/ROADMAP.md)
+Later ideas: local Ollama models, and explicit confirmation before typing an answer into another app. These are **proposals**, not shipped features. [Prioritized ideas and acceptance criteria](docs/ROADMAP.md)
 
 ## People & AI acknowledgements
 

@@ -1,9 +1,11 @@
-import { BrowserWindow, WebContentsView, screen, session, type WebContents } from 'electron'
+import { BrowserWindow, WebContentsView, screen, session, shell, type WebContents } from 'electron'
 import { join } from 'path'
 import { PROVIDERS, type ProviderId, type Settings } from '../shared/types'
 
 /** Drag grip (14px) + toolbar (46px); keep in sync with --grip and --toolbar in styles.css. */
 export const TOOLBAR_HEIGHT = 60
+/** Live-caption strip under the toolbar while always-listening; keep in sync with --transcript. */
+export const TRANSCRIPT_HEIGHT = 34
 /** One persistent session shared by all AI tabs, so logins survive restarts. */
 export const PARTITION = 'persist:meetmind'
 const BG = '#101216'
@@ -94,6 +96,12 @@ export class Overlay {
     this.win.on('moved', remember)
     this.win.on('resized', remember)
 
+    // Links in MeetMind's own UI (e.g. "Get an API key") open in the user's normal browser.
+    this.win.webContents.setWindowOpenHandler(({ url }) => {
+      if (/^https:\/\//.test(url)) void shell.openExternal(url)
+      return { action: 'deny' }
+    })
+
     if (process.env.ELECTRON_RENDERER_URL) this.win.loadURL(process.env.ELECTRON_RENDERER_URL)
     else this.win.loadFile(join(__dirname, '../renderer/index.html'))
 
@@ -133,14 +141,42 @@ export class Overlay {
   /** Outer height saved to settings while collapsed. */
   private expandedHeight = 0
   private expandedContentHeight = 0
+  /** API mode: answers render in MeetMind's own panel, so no AI website is shown (or loaded). */
+  private webHidden = false
+  private transcriptBar = false
+
+  private get headerHeight(): number {
+    return TOOLBAR_HEIGHT + (this.transcriptBar ? TRANSCRIPT_HEIGHT : 0)
+  }
 
   show(id: ProviderId): void {
     this.settings.active = id
+    if (this.webHidden) {
+      for (const v of this.views.values()) v.setVisible(false)
+      this.onChange()
+      return
+    }
     const hidden = this.panelOpen || this.collapsed
     const target = this.view(id)
     for (const [pid, v] of this.views) v.setVisible(pid === id && !hidden)
     target.setVisible(!hidden)
     this.onChange()
+  }
+
+  setWebHidden(hidden: boolean): void {
+    this.webHidden = hidden
+    this.show(this.settings.active)
+  }
+
+  /** Show/hide the live-caption strip; the AI tab (or the collapsed strip) makes room for it. */
+  setTranscriptBar(on: boolean): void {
+    if (on === this.transcriptBar || this.win.isDestroyed()) return
+    this.transcriptBar = on
+    if (this.collapsed) {
+      const b = this.win.getContentBounds()
+      this.win.setContentBounds({ ...b, height: this.headerHeight })
+    }
+    this.layout()
   }
 
   setPanel(open: boolean): void {
@@ -162,7 +198,7 @@ export class Overlay {
       this.collapsed = true
       this.show(this.settings.active) // hide the AI tab first so it doesn't flash while resizing
       this.win.setMinimumSize(340, 1)
-      this.win.setContentBounds({ ...b, height: TOOLBAR_HEIGHT })
+      this.win.setContentBounds({ ...b, height: this.headerHeight })
     } else {
       this.collapsed = false
       this.win.setContentBounds({ ...b, height: Math.max(260, this.expandedContentHeight || 680) })
@@ -178,7 +214,8 @@ export class Overlay {
   layout(): void {
     if (this.win.isDestroyed()) return
     const [width, height] = this.win.getContentSize()
-    const bounds = { x: 0, y: TOOLBAR_HEIGHT, width, height: Math.max(0, height - TOOLBAR_HEIGHT) }
+    const top = this.headerHeight
+    const bounds = { x: 0, y: top, width, height: Math.max(0, height - top) }
     for (const v of this.views.values()) v.setBounds(bounds)
   }
 

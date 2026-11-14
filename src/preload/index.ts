@@ -1,5 +1,23 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
-import type { AppState, PromptMode, ProviderId, Settings } from '../shared/types'
+import type {
+  Answer,
+  AnswerSource,
+  ApiProvider,
+  AppState,
+  HotkeyAction,
+  PromptMode,
+  ProviderId,
+  Settings
+} from '../shared/types'
+
+/** Subscribe to a main → renderer channel; returns an unsubscribe function. */
+function on<T>(channel: string, cb: (payload: T) => void) {
+  const fn = (_e: IpcRendererEvent, payload: T) => cb(payload)
+  ipcRenderer.on(channel, fn)
+  return (): void => {
+    ipcRenderer.removeListener(channel, fn)
+  }
+}
 
 const api = {
   getState: (): Promise<AppState> => ipcRenderer.invoke('get-state'),
@@ -35,8 +53,32 @@ const api = {
   setListening: (on: boolean) => ipcRenderer.send('listening', on),
   listenError: (message: string) => ipcRenderer.send('listen-error', message),
   sendAudio: (audio: Float32Array) => ipcRenderer.send('audio', audio),
+  sendLiveSegment: (audio: Float32Array) => ipcRenderer.send('live-segment', audio),
+  onTranscript: (cb: (line: { text: string; at: number }) => void) => on('transcript', cb),
+  onAnswer: (cb: (answer: Answer) => void) => on('answer', cb),
+  setAnswerSource: (v: AnswerSource) => ipcRenderer.send('set-answer-source', v),
+  setApi: (patch: { provider?: ApiProvider; model?: string }) => ipcRenderer.send('set-api', patch),
+  /** Saves (or with an empty string, removes) a key; resolves to an error message or null. */
+  setApiKey: (provider: ApiProvider, key: string): Promise<string | null> =>
+    ipcRenderer.invoke('set-api-key', provider, key),
+  setHotkey: (action: HotkeyAction, accel: string): Promise<string | null> =>
+    ipcRenderer.invoke('set-hotkey', action, accel),
+  resetHotkeys: () => ipcRenderer.send('reset-hotkeys'),
+  pauseHotkeys: (paused: boolean) => ipcRenderer.send('pause-hotkeys', paused),
   setListen: (
-    patch: Partial<Pick<Settings, 'listenSystem' | 'listenMic' | 'whisperModel' | 'language' | 'audioPrompt'>>
+    patch: Partial<
+      Pick<
+        Settings,
+        | 'listenSystem'
+        | 'listenMic'
+        | 'whisperModel'
+        | 'language'
+        | 'audioPrompt'
+        | 'listenMode'
+        | 'liveTrigger'
+        | 'myName'
+      >
+    >
   ) => ipcRenderer.send('set-listen', patch),
   hide: () => ipcRenderer.send('hide'),
   quit: () => ipcRenderer.send('quit')

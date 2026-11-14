@@ -12,7 +12,59 @@ export const PROVIDERS: Provider[] = [
   { id: 'gemini', name: 'Gemini', url: 'https://gemini.google.com/app' }
 ]
 
+export type AnswerSource = 'web' | 'api'
+export type ApiProvider = 'anthropic' | 'openai' | 'gemini'
+export type ListenMode = 'push' | 'live'
+export type HotkeyAction = 'ask' | 'listen' | 'toggle' | 'tab1' | 'tab2' | 'tab3'
+export type Hotkeys = Record<HotkeyAction, string>
+
+export const API_PROVIDERS: { id: ApiProvider; name: string; defaultModel: string; keyUrl: string }[] = [
+  { id: 'anthropic', name: 'Claude', defaultModel: 'claude-opus-5-5', keyUrl: 'https://platform.claude.com/settings/keys' },
+  { id: 'openai', name: 'OpenAI', defaultModel: 'gpt-5.6-sol', keyUrl: 'https://platform.openai.com/api-keys' },
+  { id: 'gemini', name: 'Gemini', defaultModel: 'gemini-3.8-flash', keyUrl: 'https://aistudio.google.com/apikey' }
+]
+
+export const DEFAULT_HOTKEYS: Hotkeys = {
+  ask: 'CommandOrControl+Shift+Space',
+  listen: 'CommandOrControl+Shift+L',
+  toggle: 'CommandOrControl+Shift+H',
+  tab1: 'CommandOrControl+Shift+1',
+  tab2: 'CommandOrControl+Shift+2',
+  tab3: 'CommandOrControl+Shift+3'
+}
+
+export const HOTKEY_LABELS: Record<HotkeyAction, string> = {
+  ask: 'Screenshot and ask',
+  listen: 'Listen start / stop',
+  toggle: 'Show / hide',
+  tab1: 'ChatGPT tab',
+  tab2: 'Claude tab',
+  tab3: 'Gemini tab'
+}
+
+/** One answer shown in the Answers panel (API mode). */
+export interface Answer {
+  id: number
+  kind: 'screen' | 'audio'
+  /** What was asked: the transcript, or "Screenshot". */
+  question: string
+  text: string
+  done: boolean
+  error?: string
+  provider: string
+}
+
 export interface Settings {
+  /** Where answers come from: your logged-in AI sites, or your own API key. */
+  answerSource: AnswerSource
+  apiProvider: ApiProvider
+  apiModels: Record<ApiProvider, string>
+  /** "push": press to start/stop. "live": always listening, answers questions automatically. */
+  listenMode: ListenMode
+  /** Live mode: answer every question, or only when your name is said. */
+  liveTrigger: 'questions' | 'name'
+  myName: string
+  hotkeys: Hotkeys
   active: ProviderId
   /** Press send automatically after pasting the screenshot. */
   autoSend: boolean
@@ -48,6 +100,10 @@ export interface AppState {
   listening: boolean
   /** Window is collapsed to the toolbar strip. */
   collapsed: boolean
+  /** Which API providers have a saved key (the keys themselves never leave the main process). */
+  apiKeySet: Record<ApiProvider, boolean>
+  /** Hotkeys that failed to register because another app owns them. */
+  hotkeyConflicts: HotkeyAction[]
   /** False when the OS can't hide the window from capture (Linux, old Windows). */
   protectionSupported: boolean
 }
