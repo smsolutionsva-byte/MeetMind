@@ -1,0 +1,39 @@
+{
+  "name": "meetmind",
+  "version": "0.1.0",
+  "main": "out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "start": "electron-vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "keywords": [
+    "electron",
+    "ai",
+    "meeting",
+    "overlay",
+    "chatgpt",
+    "claude",
+    "gemini",
+    "copilot"
+  ],
+  "license": "MIT",
+  "description": "Invisible floating AI copilot for online meetings. Use your own ChatGPT, Claude or Gemini login. Hidden from screen share.",
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.3.0",
+    "electron": "^41.7.1",
+    "electron-vite": "^6.0.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "^4.3.2",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "author": ""
+}
