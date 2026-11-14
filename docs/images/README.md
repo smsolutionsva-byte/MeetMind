@@ -4,7 +4,7 @@ Captured on 14 November 2026 on Windows using the actual Electron application, b
 
 | Asset | Kind | State / scope |
 |---|---|---|
-| [meetmind-tour.png](meetmind-tour.png) | Actual app UI screenshot, 440×680 | First-run tour, before completing onboarding. The tour's blanket invisibility copy is an existing UI limitation; use the README's capture caveats. |
+| [meetmind-tour.png](meetmind-tour.png) | Actual app UI screenshot, 440×680 | First-run tour, before completing onboarding. Captured before the welcome step gained its platform caveats; the app's current wording matches the README's capture notes. |
 | [meetmind-settings.png](meetmind-settings.png) | Actual app UI screenshot, 440×680 | Settings open after skipping the tour; top of scrollable prompt/audio settings. No recording started. |
 | [meetmind-setup-answers.png](meetmind-setup-answers.png) | Actual app UI screenshot, 440×680 | First-run setup, "Where should answers come from?" with option B (own API key) selected. No API key entered. |
 | [meetmind-setup-listening.png](meetmind-setup-listening.png) | Actual app UI screenshot, 440×680 | First-run setup, "How should it listen?" with Always listening and the name trigger selected. No recording running. |

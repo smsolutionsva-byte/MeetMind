@@ -103,7 +103,7 @@ Real app screenshots from a separate, signed-out demo profile. No meeting, perso
   </tr>
 </table>
 
-Both screenshots were captured in **visible mode**. They show the UI, not proof that screen-share exclusion works. The current tour's blanket invisibility wording should be read with the platform caveats in this README. [Capture notes](docs/images/README.md)
+Both screenshots were captured in **visible mode**. They show the UI, not proof that screen-share exclusion works. The tour screenshot predates the current welcome step, which now explains these platform caveats in the app. [Capture notes](docs/images/README.md)
 
 ## Quick start
 

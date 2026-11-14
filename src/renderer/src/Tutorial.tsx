@@ -38,9 +38,21 @@ export function Tutorial({
         <>
           <h2>Welcome to MeetMind 👋</h2>
           <p>
-            Your invisible meeting copilot. This window is <b>hidden from screen share and
-            recordings</b>, so people in your call can't see it.
+            Your meeting copilot. MeetMind asks your system to <b>leave this window out of screen
+            shares and recordings</b>, so people in your call shouldn't see it.
           </p>
+          {state.protectionSupported ? (
+            <p className="hint">
+              It works with most meeting apps on Windows 10 (version 2004+) and Windows 11. On
+              macOS, newer recorders may still capture it, and no system guarantees every
+              recorder respects it. Test once with a real screen share before an important call.
+            </p>
+          ) : (
+            <div className="warn">
+              This system can't hide the window from screen share (it needs Windows 10 version
+              2004 or newer, or macOS). Others may see MeetMind if you share your screen.
+            </div>
+          )}
           <p>Three quick choices, then a 30-second tour.</p>
         </>
       )
