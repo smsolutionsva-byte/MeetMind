@@ -6,9 +6,11 @@ import {
   PROVIDERS,
   WHISPER_MODELS,
   type Answer,
-  type AppState
+  type AppState,
+  type ProviderId
 } from '../../shared/types'
 import { AnswersPanel } from './AnswersPanel'
+import { GoogleNotice } from './GoogleNotice'
 import { ApiSetup } from './ApiSetup'
 import { Choice } from './Choice'
 import { HotkeyEditor, prettyKeys } from './HotkeyEditor'
@@ -104,6 +106,7 @@ export function App() {
   const [audioPrompt, setAudioPrompt] = useState('')
   const [myName, setMyName] = useState('')
   const [supportOpen, setSupportOpen] = useState(false)
+  const [googleNotice, setGoogleNotice] = useState<ProviderId | null>(null)
   const listen = useListen(state)
   const streams = useStreams()
   const flashTimer = useRef<number | undefined>(undefined)
@@ -142,6 +145,22 @@ export function App() {
       }),
     []
   )
+  // A tab tried Google sign-in (blocked by Google inside apps): explain instead of Google's error.
+  useEffect(
+    () =>
+      api.onGoogleSignIn((provider) => {
+        setSupportOpen(false)
+        setPanel(false)
+        setGoogleNotice(provider)
+        api.setPanel(true) // hide the AI tab so the notice has the window
+      }),
+    []
+  )
+  const closeGoogleNotice = () => {
+    setGoogleNotice(null)
+    api.setPanel(false)
+  }
+
   const closeSupport = () => {
     setSupportOpen(false)
     api.setPanel(false)
@@ -276,9 +295,30 @@ export function App() {
 
       {touring && <Tutorial state={state} onTarget={setTourTarget} onDone={endTour} />}
 
-      {supportOpen && !touring && !panel && <SupportCard onClose={closeSupport} />}
+      {googleNotice && !touring && !panel && (
+        <GoogleNotice
+          provider={googleNotice}
+          onClose={closeGoogleNotice}
+          onOpenSettings={() => {
+            setGoogleNotice(null)
+            setPanel(true) // the AI tab stays hidden: Settings uses the window now
+          }}
+          onGeminiKey={() => {
+            setGoogleNotice(null)
+            api.setAnswerSource('api')
+            api.setApi({ provider: 'gemini' })
+            setPanel(true)
+          }}
+          onSwitchTab={(id) => {
+            closeGoogleNotice()
+            api.setProvider(id)
+          }}
+        />
+      )}
 
-      {!touring && !panel && !supportOpen && apiMode && <AnswersPanel answers={streams.answers} state={state} />}
+      {supportOpen && !googleNotice && !touring && !panel && <SupportCard onClose={closeSupport} />}
+
+      {!touring && !panel && !supportOpen && !googleNotice && apiMode && <AnswersPanel answers={streams.answers} state={state} />}
 
       {panel && !touring && (
         <main className="panel">

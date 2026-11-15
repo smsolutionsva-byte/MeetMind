@@ -540,6 +540,7 @@ function setupIpc(): void {
       broadcast()
     }
   })
+  ipcMain.handle('google-signin-try', () => overlay.allowGoogleSignIn())
   ipcMain.on('copy-text', (_e, text: string) => clipboard.writeText(String(text).slice(0, 100000)))
   ipcMain.on('hide', () => overlay.win.hide())
   ipcMain.on('quit', () => app.quit())
@@ -550,6 +551,7 @@ app.whenReady().then(() => {
   setupAudioCapture()
   setupIpc()
   overlay = new Overlay(settings, broadcast)
+  overlay.onGoogleSignIn = (provider) => send('google-signin', provider)
   applyAnswerSource()
   setupTray()
   registerHotkeys()

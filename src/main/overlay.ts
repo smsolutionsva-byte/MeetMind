@@ -27,6 +27,22 @@ export function chromeUserAgent(): string {
   return `Mozilla/5.0 (${platform}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${major}.0.0.0 Safari/537.36`
 }
 
+/**
+ * Google's interactive sign-in pages. Google refuses them inside apps that embed a browser
+ * ("This browser or app may not be secure"), so MeetMind shows its own explanation instead.
+ * Passive login checks (`passive=`) that Google sites do on load are left alone.
+ */
+export function isGoogleSignIn(url: string): boolean {
+  let u: URL
+  try {
+    u = new URL(url)
+  } catch {
+    return false
+  }
+  if (u.hostname !== 'accounts.google.com' || u.searchParams.has('passive')) return false
+  return /^\/(o\/oauth2|signin|v3\/signin|ServiceLogin|AccountChooser|InteractiveLogin)/i.test(u.pathname)
+}
+
 /** Hide from screen share / recordings, keep on top, stay out of the taskbar. */
 export function makeStealthy(win: BrowserWindow): void {
   // MEETMIND_VISIBLE=1 keeps the window capturable, for README screenshots and UI testing.
@@ -39,6 +55,13 @@ export function makeStealthy(win: BrowserWindow): void {
 export class Overlay {
   readonly win: BrowserWindow
   private views = new Map<ProviderId, WebContentsView>()
+  /** Called when a tab tries to open Google sign-in (the page is stopped first). */
+  onGoogleSignIn: (provider: ProviderId) => void = () => {}
+  /** "Try anyway" lets Google sign-in through until this time. */
+  private googleAllowedUntil = 0
+  private blockedGoogle?: { wc: WebContents; url: string }
+  /** When each tab last finished moving to a new page, to spot pages that only forward. */
+  private committedAt = new WeakMap<WebContents, number>()
 
   constructor(
     private settings: Settings,
@@ -126,7 +149,9 @@ export class Overlay {
       webPreferences: { partition: PARTITION, contextIsolation: true, sandbox: true }
     })
     v.setBackgroundColor(BG)
-    wireWebContents(v.webContents, this.win)
+    wireWebContents(v.webContents, this.win, (wc, url) => this.guardGoogle(id, wc, url))
+    const wc = v.webContents
+    wc.on('did-navigate', () => this.committedAt.set(wc, Date.now()))
     v.webContents.loadURL(provider.url)
     this.win.contentView.addChildView(v)
     this.views.set(id, v)
@@ -224,6 +249,54 @@ export class Overlay {
     }
   }
 
+  /** Returns true when the navigation to `url` was stopped because it is Google sign-in. */
+  private guardGoogle(provider: ProviderId, wc: WebContents | null, url: string): boolean {
+    if (!isGoogleSignIn(url) || Date.now() < this.googleAllowedUntil) return false
+    // A popup that went straight to Google would sit empty on top of the notice: close it.
+    const child = wc && BrowserWindow.fromWebContents(wc)
+    if (child && child !== this.win && !child.isDestroyed()) {
+      child.close()
+      wc = null
+    }
+    this.blockedGoogle = wc ? { wc, url } : undefined
+    if (wc) void this.leaveBlankPage(provider, wc)
+    this.onGoogleSignIn(provider)
+    return true
+  }
+
+  /**
+   * ChatGPT's Google button goes through an in-between page that only forwards to Google.
+   * With Google stopped, that page stays blank (or shows a "Continue" that leads back to
+   * Google), so step back to the page the user was on. A page counts as in-between when it
+   * forwarded within 3 s of loading, or when it is empty.
+   */
+  private async leaveBlankPage(provider: ProviderId, wc: WebContents): Promise<void> {
+    const forwarder = Date.now() - (this.committedAt.get(wc) ?? 0) < 3000
+    await new Promise((r) => setTimeout(r, forwarder ? 0 : 400))
+    if (wc.isDestroyed()) return
+    if (!forwarder) {
+      const chars: number = await wc
+        .executeJavaScript('(document.body?.innerText || "").trim().length')
+        .catch(() => 0)
+      if (chars > 0 || wc.isDestroyed()) return
+    }
+    if (wc.navigationHistory.canGoBack()) wc.navigationHistory.goBack()
+    else void wc.loadURL(PROVIDERS.find((p) => p.id === provider)!.url)
+  }
+
+  /**
+   * "Try anyway": let Google sign-in through for two minutes and reopen the page that was
+   * stopped. Returns false when it was a popup, so the user has to click the button again.
+   */
+  allowGoogleSignIn(): boolean {
+    this.googleAllowedUntil = Date.now() + 120_000
+    const b = this.blockedGoogle
+    this.blockedGoogle = undefined
+    if (!b || b.wc.isDestroyed()) return false
+    void b.wc.loadURL(b.url)
+    return true
+  }
+
   active(): WebContentsView {
     return this.view(this.settings.active)
   }
@@ -250,22 +323,34 @@ export class Overlay {
  * popups such as "Continue with Google" open as protected child windows in the
  * same session, never in the user's real browser (which would be on the screen share).
  */
-function wireWebContents(wc: WebContents, parent: BrowserWindow): void {
-  wc.setWindowOpenHandler(() => ({
-    action: 'allow',
-    overrideBrowserWindowOptions: {
-      parent,
-      width: 520,
-      height: 680,
-      autoHideMenuBar: true,
-      skipTaskbar: true,
-      alwaysOnTop: true,
-      backgroundColor: '#ffffff'
+function wireWebContents(
+  wc: WebContents,
+  parent: BrowserWindow,
+  blockGoogle: (wc: WebContents | null, url: string) => boolean
+): void {
+  const guard = (e: { preventDefault(): void; url: string; isMainFrame: boolean }) => {
+    if (e.isMainFrame && blockGoogle(wc, e.url)) e.preventDefault()
+  }
+  wc.on('will-navigate', guard)
+  wc.on('will-redirect', guard)
+  wc.setWindowOpenHandler(({ url }) => {
+    if (blockGoogle(null, url)) return { action: 'deny' }
+    return {
+      action: 'allow',
+      overrideBrowserWindowOptions: {
+        parent,
+        width: 520,
+        height: 680,
+        autoHideMenuBar: true,
+        skipTaskbar: true,
+        alwaysOnTop: true,
+        backgroundColor: '#ffffff'
+      }
     }
-  }))
+  })
   wc.on('did-create-window', (child) => {
     makeStealthy(child)
-    wireWebContents(child.webContents, parent)
+    wireWebContents(child.webContents, parent, blockGoogle)
   })
 }
 

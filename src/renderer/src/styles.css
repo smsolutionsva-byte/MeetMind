@@ -471,3 +471,61 @@ kbd {
 .support-actions { display: flex; gap: 8px; margin-top: 6px; }
 .support-actions .ghost { border-style: solid; }
 .support-done { margin-top: 10px; font-size: 12px; }
+
+/* ---- Google sign-in notice (shown instead of Google's "browser may not be secure" page) ---- */
+.gnotice { flex: 1; overflow-y: auto; display: flex; padding: 18px 18px 16px; }
+.gnotice-card {
+  margin: auto; width: 100%; max-width: 360px;
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  animation: rise .25s ease-out;
+}
+.gnotice-icon {
+  width: 60px; height: 60px; display: grid; place-items: center; margin-bottom: 12px;
+  border-radius: 18px; color: var(--accent-2);
+  background: radial-gradient(circle at 30% 25%, #2b2440, var(--bg-2) 70%);
+  border: 1px solid #3a3150;
+  box-shadow: 0 8px 24px -10px rgba(139, 92, 246, .55);
+}
+.gnotice-card h2 { margin: 0 0 6px; font-size: 18px; letter-spacing: -.01em; }
+.gnotice-lead { margin: 0 0 14px; color: #c4c8d2; line-height: 1.5; }
+.gnotice-steps {
+  list-style: none; counter-reset: step; margin: 0 0 10px; padding: 0; width: 100%;
+  display: flex; flex-direction: column; gap: 8px; text-align: left;
+}
+.gnotice-steps li {
+  counter-increment: step; position: relative;
+  padding: 10px 12px 10px 42px; border-radius: 10px;
+  background: var(--bg-2); border: 1px solid var(--line); line-height: 1.45;
+}
+.gnotice-steps li::before {
+  content: counter(step); position: absolute; left: 12px; top: 10px;
+  width: 20px; height: 20px; border-radius: 10px; display: grid; place-items: center;
+  font-size: 11px; font-weight: 700; color: #fff; background: var(--accent);
+}
+.gnotice-mock { display: flex; gap: 6px; margin-top: 8px; }
+.gnotice-mock-input {
+  flex: 1; display: flex; align-items: center; gap: 6px; min-width: 0;
+  padding: 6px 9px; border-radius: 7px; border: 1px solid var(--accent);
+  background: var(--bg); color: var(--muted); font-size: 12px;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, .18);
+}
+.gnotice-mock-btn {
+  padding: 6px 10px; border-radius: 7px; font-size: 12px; font-weight: 600;
+  background: var(--text); color: var(--bg);
+}
+.gnotice-tip { margin: 0 0 12px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.gnotice-options { display: flex; flex-direction: column; gap: 8px; width: 100%; margin-bottom: 12px; }
+.gnotice-option {
+  display: flex; flex-direction: column; gap: 3px; text-align: left; cursor: pointer;
+  padding: 12px 14px; border-radius: 10px; color: var(--text);
+  background: var(--bg-2); border: 1px solid var(--line);
+  transition: border-color .15s, background .15s;
+}
+.gnotice-option:hover { border-color: var(--accent); background: #1c1a26; }
+.gnotice-option-title { font-weight: 600; font-size: 14px; }
+.gnotice-option-desc { color: var(--muted); line-height: 1.45; }
+.gnotice-option-go { color: var(--accent-2); font-weight: 600; font-size: 12px; margin-top: 3px; }
+.gnotice-actions { display: flex; gap: 8px; justify-content: center; }
+.gnotice-actions .ghost { border-style: solid; }
+.gnotice-try { margin-top: 12px; font-size: 12px; color: var(--muted); }
+.gnotice-try:hover { color: var(--accent-2); }

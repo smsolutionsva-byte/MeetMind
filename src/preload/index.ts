@@ -85,6 +85,10 @@ const api = {
   onShowSupport: (cb: () => void) => on('show-support', cb),
   /** "open" opens the Ko-fi page; "supported" hides the reminder for good. */
   supportAction: (action: 'open' | 'supported') => ipcRenderer.send('support-action', action),
+  /** A tab tried to open Google sign-in, which Google blocks inside apps; the page was stopped. */
+  onGoogleSignIn: (cb: (provider: ProviderId) => void) => on('google-signin', cb),
+  /** Lets Google sign-in through for a while; false when the user must click the button again. */
+  tryGoogleSignIn: (): Promise<boolean> => ipcRenderer.invoke('google-signin-try'),
   hide: () => ipcRenderer.send('hide'),
   quit: () => ipcRenderer.send('quit')
 }
