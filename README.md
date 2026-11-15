@@ -13,6 +13,10 @@ A compact desktop overlay for **ChatGPT · Claude · Gemini**, with screenshot p
 
 **Free and open source, forever.** If MeetMind saved you in a meeting, [buy me a chai on Ko-fi ☕](https://ko-fi.com/shivanshmukhia)
 
+<img src="docs/images/meetmind-demo.gif" alt="Demo: a quarterly-review slide is on screen; pressing Ctrl+Shift+Space makes MeetMind paste a screenshot into ChatGPT, which answers what EBITDA margin means and why it fell" width="820">
+
+<sub>Real recording, one hotkey press: MeetMind screenshots the slide and ChatGPT (guest mode, no login) explains it. The slide and company are fictional; visible mode was on so the window shows up in the recording.</sub>
+
 [Install](#install-windows) · [Visible vs. protected](#visible-vs-protected-mode) · [Screenshots](#screenshots) · [Hotkeys](#hotkeys) · [Feature ideas](docs/ROADMAP.md)
 
 </div>
@@ -113,6 +117,8 @@ Both screenshots were captured in **visible mode**. They show the UI, not proof 
 1. Download **`MeetMind-Setup-<version>.exe`** from the [latest release](https://github.com/smsolutionsva-byte/MeetMind/releases/latest).
 2. Run it and choose where to install. It installs for your user only (no admin needed) and adds Start-menu and desktop shortcuts.
 3. Windows may show **"Windows protected your PC"** because the installer isn't code-signed yet. Click **More info → Run anyway**. The source is all here if you'd rather [build it yourself](#build-from-source).
+
+**Signing in:** Google often blocks "Continue with Google" inside apps ("This browser or app may not be secure"). Use the site's **email login** instead (Claude sends a login code by email), ChatGPT's guest mode, or API-key mode.
 
 Uninstall from **Settings → Apps** like any other app. Your settings, logins and downloaded speech models live in `%APPDATA%\meetmind`; delete that folder too for a full clean-up.
 
