@@ -534,3 +534,6 @@ kbd {
 .ghost.solid { border-style: solid; margin-bottom: 8px; }
 .wiz-history { margin: 12px 0 6px; align-items: flex-start; }
 .wiz-history input { margin-top: 1px; flex: none; }
+
+/* ---- Screenshot area choice ---- */
+.tutorial kbd + .choices { margin-top: 12px; }

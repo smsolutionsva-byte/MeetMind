@@ -193,10 +193,19 @@ export function Tutorial({
         <>
           <h2>Ask about your screen</h2>
           <p>
-            Screenshots the screen your mouse is on and asks the AI. Someone mentions a term you
-            don't know? Press it and read the answer.
+            Screenshots your screen and asks the AI. Someone mentions a term you don't know? Press
+            it and read the answer.
           </p>
           <kbd>{prettyKeys(keys.ask)}</kbd>
+          <Choice
+            label="Screenshot area"
+            value={settings.captureArea}
+            onChange={(v) => api.setCaptureArea(v)}
+            options={[
+              { id: 'full', title: 'Whole screen', desc: 'The screen your mouse is on, in one press.' },
+              { id: 'select', title: 'Pick an area', desc: 'Drag a box around what you want each time. Click for the whole screen.' }
+            ]}
+          />
         </>
       )
     },

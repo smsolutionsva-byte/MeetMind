@@ -24,6 +24,7 @@ const defaults: Settings = {
   hotkeys: { ...DEFAULT_HOTKEYS },
   active: 'chatgpt',
   autoSend: true,
+  captureArea: 'full',
   promptMode: 'short',
   customPrompt: '',
   onboarded: false,
@@ -50,6 +51,7 @@ export function loadSettings(): Settings {
     if (!API_PROVIDERS.some((p) => p.id === s.apiProvider)) s.apiProvider = defaults.apiProvider
     if (s.answerSource !== 'api') s.answerSource = 'web'
     if (s.listenMode !== 'live') s.listenMode = 'push'
+    if (s.captureArea !== 'select') s.captureArea = 'full'
     if (!PROVIDERS.some((p) => p.id === s.active)) s.active = defaults.active
     s.opacity = Math.min(1, Math.max(0.3, Number(s.opacity) || 1))
     if (!WHISPER_MODELS.some((m) => m.id === s.whisperModel)) s.whisperModel = defaults.whisperModel

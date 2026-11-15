@@ -13,7 +13,7 @@ import {
   type NativeImage
 } from 'electron'
 import { streamAnswer } from './answer'
-import { captureScreen, pasteIntoChat } from './capture'
+import { captureScreen, cropToArea, fitForUpload, pasteIntoChat, selectArea, type PasteResult } from './capture'
 import { History } from './history'
 import { getKey, keysSet, setKey } from './keys'
 import { cleanTranscript, shouldAnswer, type TranscriptLine } from './live'
@@ -225,17 +225,26 @@ async function askAI(req: { kind: 'screen' | 'audio'; question: string; text: st
   try {
     const name = tabName(settings.active)
     setStatus(settings.autoSend ? `Sending to ${name}…` : `Pasting into ${name}…`)
-    const result = await pasteIntoChat(overlay.active().webContents, {
-      image: req.image,
-      text: req.text,
-      autoSend: settings.autoSend
-    })
+    // Safety net: whatever the page does, never leave "Sending…" stuck (and block the next ask).
+    const result: PasteResult | 'timeout' = await Promise.race([
+      pasteIntoChat(overlay.active().webContents, {
+        image: req.image,
+        text: req.text,
+        autoSend: settings.autoSend,
+        onWaiting: () => setStatus(`Waiting for ${name} to finish the last answer…`)
+      }),
+      new Promise<'timeout'>((r) => setTimeout(() => r('timeout'), 150_000))
+    ])
     setStatus(
       result === 'sent'
         ? `Sent to ${name}`
         : result === 'pasted'
           ? 'Pasted. Press Enter to send'
-          : `Log in to ${name} first`
+          : result === 'not-sent'
+            ? `Couldn't send. Press Enter in ${name}, or start a new chat if it's slow`
+            : result === 'timeout'
+              ? `${name} isn't responding. Try a new chat`
+              : `Log in to ${name} first`
     )
   } finally {
     busy = false
@@ -309,9 +318,19 @@ async function askApi(req: { kind: 'screen' | 'audio'; question: string; text: s
 }
 
 async function captureAndAsk(): Promise<void> {
+  if (busy && settings.answerSource === 'web') return setStatus('Still sending the last one…')
   setStatus('Capturing screen…')
   try {
-    const image = await captureScreen()
+    const shot = await captureScreen()
+    let image = shot.image
+    if (settings.captureArea === 'select') {
+      setStatus('Pick an area…')
+      overlay.holdTopmost = true
+      const area = await selectArea(shot.display, shot.image).finally(() => (overlay.holdTopmost = false))
+      if (!area) return setStatus('Screenshot cancelled')
+      if (area !== 'full') image = cropToArea(image, area)
+    }
+    image = fitForUpload(image)
     if (settings.answerSource === 'web') {
       // Pasting into the AI website needs keyboard focus.
       if (!overlay.win.isVisible()) overlay.win.show()
@@ -511,6 +530,10 @@ function setupIpc(): void {
     if (PROVIDERS.some((p) => p.id === id)) overlay.show(id)
   })
   ipcMain.on('capture', () => void captureAndAsk())
+  ipcMain.on('set-capture-area', (_e, v: string) => {
+    settings.captureArea = v === 'select' ? 'select' : 'full'
+    broadcast()
+  })
   ipcMain.on('set-auto-send', (_e, v: boolean) => {
     settings.autoSend = !!v
     broadcast()

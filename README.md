@@ -26,7 +26,7 @@ A compact desktop overlay for **ChatGPT · Claude · Gemini**, with screenshot p
 ## What it does
 
 - **Bring your own AI account — or your own API key.** Use your logged-in ChatGPT, Claude or Gemini in the floating window (no key required), or paste a Claude, OpenAI or Gemini API key and get answers streamed straight into MeetMind. Keys are encrypted with the OS keychain and stay on your PC.
-- **Ask about your screen.** A hotkey captures the display under your cursor and pastes it into the active AI with your chosen prompt. Automatic sending is optional.
+- **Ask about your screen.** A hotkey captures the display under your cursor, or an area you drag out (Settings → Screenshot area), and pastes it into the active AI with your chosen prompt. Automatic sending is optional.
 - **Listen: press-to-talk or always on.** Record a segment and ask, or turn on **always listening**: live captions of the call, with questions (or only questions after your name) answered automatically. Speech is transcribed locally with Whisper; Windows loopback audio captures the call, with an optional microphone.
 - **Meeting notes, kept on your PC.** What MeetMind hears is saved as a transcript per meeting (on by default, one switch to turn off). The **Meeting notes** window lists past meetings with search, one-click summaries (key points, decisions, action items, jargon explained) and an ask box for one meeting or all of them, like "what did the CFO say about margins?".
 - **Add useful context.** Choose Short, Detailed, image-only, or a custom prompt with a local Markdown/text context file.
@@ -222,7 +222,7 @@ Clearing those environment variables does not delete the demo's files.
 ## How it works
 
 - **AI tabs:** providers run in Electron `WebContentsView` instances using the persistent `persist:meetmind` session.
-- **Screenshot flow:** captures the display under your cursor at native resolution, uses clipboard paste and optionally sends after the upload completes. Existing clipboard text is restored afterward.
+- **Screenshot flow:** captures the display under your cursor at native resolution; in "Pick an area" mode it shows that shot frozen and dimmed so you can drag out a region (Esc cancels, a click keeps the whole screen). Images are scaled down to at most 1920 px on the long side, which the AIs downscale to anyway and which keeps long chats light. It pastes through the clipboard and optionally sends once the upload completes, waiting first if the AI is still writing its last answer; every step has a time limit, so a slow or frozen page shows a message instead of a stuck "Sending…". Existing clipboard text is restored afterward.
 - **Listen flow:** Windows system audio uses loopback capture; microphone input is optional. Audio is resampled to 16 kHz and transcribed in a Whisper worker thread via Transformers.js.
 - **Provider integration:** uses the providers' web interfaces, so account restrictions and site changes can affect login, paste or Send. A Chrome-style user agent is used; successful third-party sign-in is not guaranteed.
 - **Speech models:** the selected model is cached under the app-data directory after download.

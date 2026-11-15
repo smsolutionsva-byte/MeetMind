@@ -57,6 +57,8 @@ export class Overlay {
   private views = new Map<ProviderId, WebContentsView>()
   /** Called when a tab tries to open Google sign-in (the page is stopped first). */
   onGoogleSignIn: (provider: ProviderId) => void = () => {}
+  /** True while the screenshot area picker is open: don't jump back above it. */
+  holdTopmost = false
   /** "Try anyway" lets Google sign-in through until this time. */
   private googleAllowedUntil = 0
   private blockedGoogle?: { wc: WebContents; url: string }
@@ -100,7 +102,7 @@ export class Overlay {
 
     // Re-assert top-most after focus changes; some apps (Zoom) push themselves above.
     this.win.on('blur', () => {
-      if (!this.win.isDestroyed()) this.win.setAlwaysOnTop(true, 'screen-saver')
+      if (!this.win.isDestroyed() && !this.holdTopmost) this.win.setAlwaysOnTop(true, 'screen-saver')
     })
     this.win.on('resize', () => this.layout())
     // The collapsed strip has a fixed size; only + expands it.

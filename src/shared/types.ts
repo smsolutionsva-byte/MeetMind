@@ -15,6 +15,8 @@ export const PROVIDERS: Provider[] = [
 export type AnswerSource = 'web' | 'api'
 export type ApiProvider = 'anthropic' | 'openai' | 'gemini'
 export type ListenMode = 'push' | 'live'
+/** Screenshot the whole screen, or drag to pick an area each time. */
+export type CaptureArea = 'full' | 'select'
 export type HotkeyAction = 'ask' | 'listen' | 'toggle' | 'tab1' | 'tab2' | 'tab3'
 export type Hotkeys = Record<HotkeyAction, string>
 
@@ -138,6 +140,7 @@ export interface Settings {
   active: ProviderId
   /** Press send automatically after pasting the screenshot. */
   autoSend: boolean
+  captureArea: CaptureArea
   /** Which text goes with the screenshot (see PROMPT_PRESETS). */
   promptMode: PromptMode
   /** Used when promptMode is "custom". */

@@ -360,6 +360,15 @@ export function App() {
 
           <section>
             <h3>Screenshot → AI</h3>
+            <Choice
+              label="Screenshot area"
+              value={settings.captureArea}
+              onChange={(v) => api.setCaptureArea(v)}
+              options={[
+                { id: 'full', title: 'Whole screen', desc: 'The screen your mouse is on, in one press.' },
+                { id: 'select', title: 'Pick an area', desc: 'Drag a box around what you want each time. Click for the whole screen.' }
+              ]}
+            />
             {!apiMode && (
               <label className="row">
                 <input

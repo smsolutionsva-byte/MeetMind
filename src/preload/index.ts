@@ -4,6 +4,7 @@ import type {
   AnswerSource,
   ApiProvider,
   AppState,
+  CaptureArea,
   HotkeyAction,
   Meeting,
   MeetingInfo,
@@ -35,6 +36,7 @@ const api = {
   setProvider: (id: ProviderId) => ipcRenderer.send('set-provider', id),
   capture: () => ipcRenderer.send('capture'),
   setAutoSend: (v: boolean) => ipcRenderer.send('set-auto-send', v),
+  setCaptureArea: (v: CaptureArea) => ipcRenderer.send('set-capture-area', v),
   setPromptMode: (mode: PromptMode) => ipcRenderer.send('set-prompt-mode', mode),
   setCustomPrompt: (v: string) => ipcRenderer.send('set-custom-prompt', v),
   /** Opens a file picker; resolves to an error message, or null when fine/cancelled. */
