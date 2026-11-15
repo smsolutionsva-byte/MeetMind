@@ -5,6 +5,10 @@ import type {
   ApiProvider,
   AppState,
   HotkeyAction,
+  Meeting,
+  MeetingInfo,
+  NotesAnswer,
+  NotesAskResult,
   PromptMode,
   ProviderId,
   Settings
@@ -89,6 +93,21 @@ const api = {
   onGoogleSignIn: (cb: (provider: ProviderId) => void) => on('google-signin', cb),
   /** Lets Google sign-in through for a while; false when the user must click the button again. */
   tryGoogleSignIn: (): Promise<boolean> => ipcRenderer.invoke('google-signin-try'),
+  // Meeting history / Meeting notes window
+  openNotes: () => ipcRenderer.send('open-notes'),
+  setSaveHistory: (on: boolean) => ipcRenderer.send('set-save-history', on),
+  listMeetings: (query = ''): Promise<MeetingInfo[]> => ipcRenderer.invoke('history-list', query),
+  getMeeting: (id: string): Promise<Meeting | null> => ipcRenderer.invoke('history-get', id),
+  renameMeeting: (id: string, title: string) => ipcRenderer.send('history-rename', id, title),
+  deleteMeeting: (id: string) => ipcRenderer.send('history-delete', id),
+  deleteAllMeetings: () => ipcRenderer.send('history-delete-all'),
+  /** Summarize a meeting, or ask about one (or all of them, with meetingId null). */
+  notesAsk: (req: { meetingId: string | null; kind: 'summary' | 'question'; question: string }): Promise<NotesAskResult> =>
+    ipcRenderer.invoke('notes-ask', req),
+  onNotesAnswer: (cb: (a: NotesAnswer) => void) => on('notes-answer', cb),
+  onHistoryChanged: (cb: () => void) => on('history-changed', cb),
+  /** Meeting notes sent something to the AI tab: close Settings and cards so it shows. */
+  onResetView: (cb: () => void) => on('reset-view', cb),
   hide: () => ipcRenderer.send('hide'),
   quit: () => ipcRenderer.send('quit')
 }

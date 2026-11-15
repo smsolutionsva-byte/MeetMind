@@ -19,6 +19,8 @@ export interface AskInput {
   apiKey: string
   text: string
   image?: NativeImage
+  /** Replaces the default "brief answer mid-meeting" instructions (used by Meeting notes). */
+  system?: string
 }
 
 /** Downscale and JPEG-encode screenshots: smaller uploads, faster answers, same readability. */
@@ -54,7 +56,7 @@ async function anthropic(input: AskInput, text: string, image: string | undefine
     // If a request is declined by a safety classifier, let the API retry on a fallback model.
     betas: ['server-side-fallback-2026-07-01'],
     fallbacks: 'default',
-    system: SYSTEM,
+    system: input.system ?? SYSTEM,
     messages: [{ role: 'user', content }]
   })
   stream.on('text', (delta) => onDelta(delta))
@@ -68,7 +70,7 @@ async function openai(input: AskInput, text: string, image: string | undefined, 
   if (image) content.unshift({ type: 'input_image', image_url: `data:image/jpeg;base64,${image}`, detail: 'auto' })
   const stream = await client.responses.create({
     model: input.model,
-    instructions: SYSTEM,
+    instructions: input.system ?? SYSTEM,
     input: [{ role: 'user', content }],
     stream: true
   })
@@ -86,7 +88,7 @@ async function gemini(input: AskInput, text: string, image: string | undefined, 
   const stream = await ai.models.generateContentStream({
     model: input.model,
     contents: [{ role: 'user', parts }],
-    config: { systemInstruction: SYSTEM }
+    config: { systemInstruction: input.system ?? SYSTEM }
   })
   for await (const chunk of stream) {
     if (chunk.text) onDelta(chunk.text)

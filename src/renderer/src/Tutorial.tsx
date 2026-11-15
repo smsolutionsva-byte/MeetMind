@@ -145,6 +145,14 @@ export function Tutorial({
               )}
             </div>
           )}
+          <label className="row wiz-history">
+            <input
+              type="checkbox"
+              checked={settings.saveHistory}
+              onChange={(e) => api.setSaveHistory(e.target.checked)}
+            />
+            <span>Save transcripts on this PC, for meeting notes and summaries later</span>
+          </label>
           <p className="hint">Speech is turned into text on your PC, and it hears the meeting audio, so headphones are fine.</p>
         </>
       )

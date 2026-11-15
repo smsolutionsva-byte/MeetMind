@@ -28,6 +28,7 @@ A compact desktop overlay for **ChatGPT · Claude · Gemini**, with screenshot p
 - **Bring your own AI account — or your own API key.** Use your logged-in ChatGPT, Claude or Gemini in the floating window (no key required), or paste a Claude, OpenAI or Gemini API key and get answers streamed straight into MeetMind. Keys are encrypted with the OS keychain and stay on your PC.
 - **Ask about your screen.** A hotkey captures the display under your cursor and pastes it into the active AI with your chosen prompt. Automatic sending is optional.
 - **Listen: press-to-talk or always on.** Record a segment and ask, or turn on **always listening**: live captions of the call, with questions (or only questions after your name) answered automatically. Speech is transcribed locally with Whisper; Windows loopback audio captures the call, with an optional microphone.
+- **Meeting notes, kept on your PC.** What MeetMind hears is saved as a transcript per meeting (on by default, one switch to turn off). The **Meeting notes** window lists past meetings with search, one-click summaries (key points, decisions, action items, jargon explained) and an ask box for one meeting or all of them, like "what did the CFO say about margins?".
 - **Add useful context.** Choose Short, Detailed, image-only, or a custom prompt with a local Markdown/text context file.
 - **Your shortcuts, your setup.** A first-run setup asks the important A/B questions (AI accounts vs. API key, press-to-talk vs. always listening), then tours every button. All shortcuts are customizable, with conflict warnings.
 - **Keep the interface compact.** Always-on-top window, adjustable opacity, collapse-to-toolbar, hide-to-tray and a drag grip.
@@ -118,7 +119,7 @@ Both screenshots were captured in **visible mode**. They show the UI, not proof 
 2. Run it and choose where to install. It installs for your user only (no admin needed) and adds Start-menu and desktop shortcuts.
 3. Windows may show **"Windows protected your PC"** because the installer isn't code-signed yet. Click **More info → Run anyway**. The source is all here if you'd rather [build it yourself](#build-from-source).
 
-**Signing in:** Google often blocks "Continue with Google" inside apps ("This browser or app may not be secure"). Use the site's **email login** instead (Claude sends a login code by email), ChatGPT's guest mode, or API-key mode.
+**Signing in:** Google blocks "Continue with Google" inside apps that embed a browser ("This browser or app may not be secure"). MeetMind shows a short guide instead: use the site's **email login** (Claude sends a login code by email), ChatGPT's guest mode, or API-key mode. Gemini only offers Google sign-in, so use a Gemini API key there.
 
 Uninstall from **Settings → Apps** like any other app. Your settings, logins and downloaded speech models live in `%APPDATA%\meetmind`; delete that folder too for a full clean-up.
 
@@ -179,11 +180,15 @@ Source: [Electron content-protection documentation](https://www.electronjs.org/d
 ```text
 Screenshot + prompt/context ────────────► selected AI website  (or API, in API-key mode)
 Meeting audio ──► local Whisper ──► transcript + prompt ──► selected AI website  (or API)
+                                 └──► meeting history on this PC (Settings → Meeting history)
+Meeting notes: summary / question + saved transcripts ──► selected AI, only when you ask
 ```
 
 In API-key mode, screenshots are downscaled to 1600 px wide and sent as JPEG directly to the provider you chose; nothing goes through a MeetMind server, because there isn't one.
 
 Speech recognition runs locally; AI replies still come from the provider you use. Model downloads, provider pages, account sign-in and provider-side processing require network access. “Local transcription” is not a claim that the entire app is offline.
+
+**Meeting history** is on by default: transcripts (and answers in API-key mode) are saved as one JSON file per meeting in the `meetings` folder of MeetMind's app-data directory, never uploaded by MeetMind itself. Turn it off in the setup, in Settings → Meeting history, or in the Meeting notes window; delete one meeting or all of them there. Summaries and questions in Meeting notes send the relevant transcripts to the AI you use, only when you click. Recording or transcribing other people can need their consent where you live.
 
 Provider cookies/logins and local settings persist in MeetMind's app-data directory. Avoid including confidential content in screenshots or context files without permission. Turning off **Send automatically after pasting** lets you review the draft in the provider before sending.
 
@@ -222,18 +227,19 @@ Clearing those environment variables does not delete the demo's files.
 - **Provider integration:** uses the providers' web interfaces, so account restrictions and site changes can affect login, paste or Send. A Chrome-style user agent is used; successful third-party sign-in is not guaranteed.
 - **Speech models:** the selected model is cached under the app-data directory after download.
 - **Always listening:** a simple voice detector cuts the call audio at pauses; each sentence is transcribed in order. A question (ends with "?" or starts with what/why/how/can you…) — or, optionally, a line after your name — triggers an answer, at most once every 6 seconds. Common Whisper hallucinations on silence ("Thank you.") are filtered out.
+- **Meeting history:** each transcribed line is appended to the current meeting; more than 30 minutes of silence starts a new one. The Meeting notes window (toolbar notebook icon or tray menu) is a separate window, also excluded from capture in protected mode. "Ask all meetings" ranks meetings by how many of the question's words they contain and sends the best matches, newest first, up to about 60,000 characters (30,000 when pasting into an AI website).
 - **API-key mode:** official SDKs (`@anthropic-ai/sdk`, `openai`, `@google/genai`) stream the answer. Defaults: `claude-opus-5-5` (low effort for speed, with server-side refusal fallback enabled), `gpt-5.6-sol`, `gemini-3.8-flash`; the model name is editable in Settings.
 
 ## Roadmap & feature ideas
 
-Implemented: screenshot-to-AI, provider tabs, prompt presets/context, local listen/transcribe flow, always-listening mode with question detection, API-key mode (Claude/OpenAI/Gemini), configurable shortcuts with conflict feedback, A/B setup wizard, onboarding and compact overlay controls.
+Implemented: screenshot-to-AI, provider tabs, prompt presets/context, local listen/transcribe flow, always-listening mode with question detection, meeting history with summaries and questions (Meeting notes), API-key mode (Claude/OpenAI/Gemini), configurable shortcuts with conflict feedback, A/B setup wizard, onboarding and compact overlay controls.
 
 Suggested next improvements:
 
 1. **Mode badge & capture diagnostics** — make Visible/Protected intent obvious and show platform caveats.
 2. **Area capture with preview/redaction** — choose what leaves the device before sending.
 3. **Cancelable transcription** — predictable recording and recovery from long/failed jobs.
-4. **Opt-in transcript history/export** — local Markdown notes, clear retention and one-click clearing.
+4. **Transcript export & retention** — save meetings as Markdown files and auto-delete after N days (history, summaries and questions are already shipped).
 5. **Installers & CI checks** — signed releases where feasible, type/build checks and platform smoke tests.
 
 Later ideas: local Ollama models, and explicit confirmation before typing an answer into another app. These are **proposals**, not shipped features. [Prioritized ideas and acceptance criteria](docs/ROADMAP.md)

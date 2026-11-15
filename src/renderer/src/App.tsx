@@ -156,6 +156,18 @@ export function App() {
       }),
     []
   )
+  // Meeting notes pasted something into the AI tab: get Settings and cards out of the way.
+  useEffect(
+    () =>
+      api.onResetView(() => {
+        setPanel(false)
+        setSupportOpen(false)
+        setGoogleNotice(null)
+        api.setPanel(false)
+      }),
+    []
+  )
+
   const closeGoogleNotice = () => {
     setGoogleNotice(null)
     api.setPanel(false)
@@ -257,6 +269,9 @@ export function App() {
         >
           <CameraIcon />
           <span className="ask-label">{askLabel}</span>
+        </button>
+        <button className="icon" title="Meeting notes: history, summaries, questions" onClick={() => api.openNotes()}>
+          <NotesIcon />
         </button>
         <button
           className={`icon ${panel ? 'on' : ''}${spot('settings')}`}
@@ -468,6 +483,25 @@ export function App() {
           </section>
 
           <section>
+            <h3>Meeting history</h3>
+            <label className="row">
+              <input
+                type="checkbox"
+                checked={settings.saveHistory}
+                onChange={(e) => api.setSaveHistory(e.target.checked)}
+              />
+              <span>Save meeting transcripts on this PC</span>
+            </label>
+            <button className="ghost solid" onClick={() => api.openNotes()}>
+              <NotesIcon /> Open meeting notes
+            </button>
+            <p className="hint">
+              What MeetMind hears (and API answers) is kept here so you can summarize it or ask about it later.
+              Nothing is uploaded unless you ask the AI about a meeting.
+            </p>
+          </section>
+
+          <section>
             <h3>Shortcuts</h3>
             <HotkeyEditor state={state} />
           </section>
@@ -539,3 +573,12 @@ const MinusIcon = () => (
     <path d="M5 12h14" />
   </svg>
 )
+
+function NotesIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="5" y="3" width="14" height="18" rx="2.5" />
+      <path d="M9 8h6M9 12h6M9 16h3" />
+    </svg>
+  )
+}

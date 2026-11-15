@@ -14,10 +14,12 @@ import {
 } from 'electron'
 import { streamAnswer } from './answer'
 import { captureScreen, pasteIntoChat } from './capture'
+import { History } from './history'
 import { getKey, keysSet, setKey } from './keys'
 import { cleanTranscript, shouldAnswer, type TranscriptLine } from './live'
 import { chromeUserAgent, Overlay, setupSession } from './overlay'
 import { CONTEXT_EXTENSIONS, contextFileInfo, screenshotPrompt } from './prompt'
+import { notesWindow, openNotesWindow } from './notes-window'
 import { loadSettings, saveSettings } from './settings'
 import { Transcriber } from './transcriber'
 import {
@@ -32,6 +34,8 @@ import {
   type ApiProvider,
   type AppState,
   type HotkeyAction,
+  type NotesAnswer,
+  type NotesAskResult,
   type ProviderId,
   type Settings
 } from '../shared/types'
@@ -80,7 +84,115 @@ function send(channel: string, payload: unknown): void {
 
 function broadcast(): void {
   saveSettings(settings)
-  send('state', state())
+  const s = state()
+  send('state', s)
+  notesWindow()?.webContents.send('state', s)
+}
+
+// ---- Meeting history and Meeting notes ----
+
+let historyTimer: NodeJS.Timeout | undefined
+/** Tell an open Meeting notes window to refresh, at most twice a second. */
+const history = new History(() => {
+  if (historyTimer || !notesWindow()) return
+  historyTimer = setTimeout(() => {
+    historyTimer = undefined
+    notesWindow()?.webContents.send('history-changed', null)
+  }, 500)
+})
+
+const NOTES_SYSTEM =
+  'You help someone review their own meetings from rough automatic speech-to-text transcripts, ' +
+  'which can contain misheard words. Be accurate and concise, never invent details that are not ' +
+  'in the transcripts, and use short "- " bullet lists where they help.'
+
+let nextNotesId = 1
+
+function notesPrompt(kind: 'summary' | 'question', question: string, context: string): string {
+  if (kind === 'summary')
+    return (
+      'Summarize this meeting. Start with one line "Title: <a short title, at most 6 words>". ' +
+      'Then these sections, each with a few short "- " bullets, skipping any that would be empty:\n' +
+      'Key points\nDecisions\nAction items (with who, if said)\nTerms explained (jargon that came up, one line each)\n\n' +
+      context
+    )
+  return (
+    'Answer my question using only these meeting transcripts. Mention which meeting (name and date) ' +
+    'the answer comes from. If they do not contain the answer, say so plainly.\n\n' +
+    `Question: ${question}\n\n${context}`
+  )
+}
+
+/** Summaries and questions from Meeting notes, answered the same way as everything else. */
+function notesAsk(req: { meetingId: string | null; kind: 'summary' | 'question'; question: string }): NotesAskResult {
+  const meetingId = req.meetingId && history.get(req.meetingId) ? req.meetingId : null
+  const kind = req.kind === 'summary' && meetingId ? 'summary' : 'question'
+  const question = String(req.question ?? '').trim().slice(0, 2000)
+  if (kind === 'question' && !question) return { mode: 'error', message: 'Type a question first.' }
+  const web = settings.answerSource === 'web'
+  // The AI website's chat box takes less than an API call.
+  const context = history.context(meetingId, question, web ? 30_000 : 60_000)
+  if (!context) return { mode: 'error', message: 'No saved meetings yet.' }
+  const prompt = notesPrompt(kind, question, context)
+
+  if (web) {
+    if (busy) return { mode: 'error', message: 'Still pasting the last one into the AI tab. Try again in a moment.' }
+    send('reset-view', null) // close Settings and cards so the AI tab is visible
+    if (!overlay.win.isVisible()) overlay.win.show()
+    overlay.win.focus()
+    void askAI({
+      kind: 'audio',
+      question: kind === 'summary' ? 'Meeting summary' : question,
+      text: NOTES_SYSTEM + '\n\n' + prompt
+    })
+    return { mode: 'web', tab: tabName(settings.active) }
+  }
+
+  const provider = settings.apiProvider
+  const apiKey = getKey(provider)
+  if (!apiKey && !process.env.MEETMIND_DRY_RUN)
+    return { mode: 'error', message: 'Add your ' + apiName(provider) + ' API key in Settings first.' }
+  const answer: NotesAnswer = {
+    requestId: nextNotesId++,
+    text: '',
+    done: false,
+    provider: apiName(provider),
+    meetingId,
+    kind
+  }
+  const push = () => notesWindow()?.webContents.send('notes-answer', { ...answer })
+  void (async () => {
+    try {
+      if (process.env.MEETMIND_DRY_RUN) {
+        // Testing aid: a canned answer instead of calling the AI.
+        const canned =
+          kind === 'summary'
+            ? 'Title: Dry run summary\n\nKey points\n- This is a **test** summary.\n- Nothing was sent to the AI.\n\nAction items\n- Check the layout'
+            : 'Dry run: would ask "' + question + '" with ' + context.length + ' characters of transcript.'
+        for (const word of canned.split(/(?<= )/)) {
+          answer.text += word
+          push()
+          await new Promise((r) => setTimeout(r, 15))
+        }
+      } else {
+        await streamAnswer(
+          { provider, model: settings.apiModels[provider], apiKey: apiKey!, text: prompt, system: NOTES_SYSTEM },
+          (delta) => {
+            answer.text += delta
+            push()
+          }
+        )
+      }
+      answer.done = true
+      if (kind === 'summary' && meetingId) history.setSummary(meetingId, answer.text)
+      push()
+    } catch (err) {
+      answer.done = true
+      answer.error = (err as Error).message
+      push()
+    }
+  })()
+  return { mode: 'api', requestId: answer.requestId }
 }
 
 function setStatus(s: string): void {
@@ -187,6 +299,7 @@ async function askApi(req: { kind: 'screen' | 'audio'; question: string; text: s
       }
     )
     send('answer', { ...answer, done: true })
+    if (settings.saveHistory) history.addAnswer({ question: answer.question, text: answer.text, provider: answer.provider })
     markActivity()
     setStatus(`Answered by ${apiName(provider)}`)
   } catch (err) {
@@ -243,6 +356,7 @@ async function handleClip(audio: Float32Array): Promise<void> {
       await transcriber.transcribe(audio, settings.whisperModel, settings.language)
     )
     if (!transcript) return setStatus('No speech heard')
+    if (settings.saveHistory) history.addLine(transcript)
     if (process.env.MEETMIND_DRY_RUN) {
       // Testing aid: print the transcript instead of sending it to the AI.
       console.log(`[listen] dry run, ${seconds.toFixed(1)}s transcript: ${transcript}`)
@@ -286,6 +400,7 @@ async function drainLive(): Promise<void> {
       if (!text) continue
       const line = { text, at: Date.now() }
       live.lines.push(line)
+      if (settings.saveHistory) history.addLine(text, line.at)
       if (live.lines.length > 30) live.lines.shift()
       send('transcript', line)
       if (process.env.MEETMIND_DRY_RUN) console.log(`[live] ${text}`)
@@ -380,6 +495,7 @@ function setupTray(): void {
       { label: 'Show / hide', click: () => overlay.toggle() },
       { label: 'Screenshot and ask', click: () => void captureAndAsk() },
       { label: 'Listen start / stop', click: () => toggleListen() },
+      { label: 'Meeting notes', click: () => openNotesWindow() },
       { type: 'separator' },
       { label: 'Support MeetMind ☕', click: () => void shell.openExternal(SUPPORT_URL) },
       { type: 'separator' },
@@ -540,6 +656,19 @@ function setupIpc(): void {
       broadcast()
     }
   })
+  // Meeting history / Meeting notes
+  ipcMain.on('open-notes', () => openNotesWindow())
+  ipcMain.on('set-save-history', (_e, on: boolean) => {
+    settings.saveHistory = !!on
+    broadcast()
+  })
+  ipcMain.handle('history-list', (_e, query: string) => history.list(String(query ?? '').slice(0, 200)))
+  ipcMain.handle('history-get', (_e, id: string) => history.get(id))
+  ipcMain.on('history-rename', (_e, id: string, title: string) => history.rename(id, String(title ?? '')))
+  ipcMain.on('history-delete', (_e, id: string) => history.remove(id))
+  ipcMain.on('history-delete-all', () => history.removeAll())
+  ipcMain.handle('notes-ask', (_e, req) => notesAsk(req))
+
   ipcMain.handle('google-signin-try', () => overlay.allowGoogleSignIn())
   ipcMain.on('copy-text', (_e, text: string) => clipboard.writeText(String(text).slice(0, 100000)))
   ipcMain.on('hide', () => overlay.win.hide())

@@ -54,6 +54,64 @@ export interface Answer {
   provider: string
 }
 
+// ---- Meeting history (saved on this PC only) ----
+
+export interface MeetingLine {
+  at: number
+  text: string
+}
+
+export interface MeetingAnswer {
+  at: number
+  /** What was asked: the transcript, or "Screenshot". */
+  question: string
+  text: string
+  provider: string
+}
+
+export interface Meeting {
+  id: string
+  /** Empty until the user renames it or a summary suggests one. */
+  title: string
+  startedAt: number
+  endedAt: number
+  lines: MeetingLine[]
+  answers: MeetingAnswer[]
+  summary?: string
+  summaryAt?: number
+}
+
+/** The list view of a meeting, without the full transcript. */
+export interface MeetingInfo {
+  id: string
+  title: string
+  startedAt: number
+  endedAt: number
+  lineCount: number
+  answerCount: number
+  hasSummary: boolean
+  preview: string
+  /** Still being added to (heard something in the last couple of minutes). */
+  live: boolean
+}
+
+/** A streamed answer to a summary request or a question about past meetings. */
+export interface NotesAnswer {
+  requestId: number
+  text: string
+  done: boolean
+  error?: string
+  provider?: string
+  /** The meeting it is about, or null for "all meetings". */
+  meetingId: string | null
+  kind: 'summary' | 'question'
+}
+
+export type NotesAskResult =
+  | { mode: 'api'; requestId: number }
+  | { mode: 'web'; tab: string }
+  | { mode: 'error'; message: string }
+
 export const SUPPORT_URL = 'https://ko-fi.com/shivanshmukhia'
 
 /** WinRAR-style support reminder bookkeeping. The app works the same either way. */
@@ -100,6 +158,8 @@ export interface Settings {
   language: string
   /** Prompt wrapped around the transcript; {transcript} is replaced. */
   audioPrompt: string
+  /** Keep transcripts (and API answers) of meetings on this PC, for Meeting notes. */
+  saveHistory: boolean
   bounds?: { x: number; y: number; width: number; height: number }
 }
 

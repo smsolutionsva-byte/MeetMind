@@ -16,5 +16,16 @@ export default defineConfig({
     }
   },
   preload: { plugins: [externalizeDepsPlugin()] },
-  renderer: { plugins: [react()] }
+  renderer: {
+    plugins: [react()],
+    build: {
+      rollupOptions: {
+        // Two pages: the floating window and the Meeting notes window.
+        input: {
+          index: resolve(__dirname, 'src/renderer/index.html'),
+          notes: resolve(__dirname, 'src/renderer/notes.html')
+        }
+      }
+    }
+  }
 })

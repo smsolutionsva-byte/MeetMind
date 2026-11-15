@@ -32,7 +32,8 @@ const defaults: Settings = {
   listenMic: false,
   whisperModel: 'onnx-community/whisper-base',
   language: 'en',
-  audioPrompt: DEFAULT_AUDIO_PROMPT
+  audioPrompt: DEFAULT_AUDIO_PROMPT,
+  saveHistory: true
 }
 
 export function loadSettings(): Settings {
